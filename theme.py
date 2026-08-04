@@ -42,7 +42,7 @@ FONTE_TEXTO = "14px"
 FONTE_LEGENDA = "12px"
 
 SIDEBAR_W = "208px"
-SIDEBAR_W_COLLAPSED = "64px"
+SIDEBAR_W_COLLAPSED = "52px"
 
 APP_NAME = "Kalani Vaa Team"
 LOGO_PATH = "/assets/logo_kalani.png"
@@ -53,7 +53,9 @@ def reais(centavos: int) -> str:
 
 
 GLOBAL_CSS = f"""
-body {{ background-color: {BG}; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; }}
+body {{ background-color: {BG}; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; }}
+.nicegui-content {{ padding: 0 !important; gap: 0 !important; }}
+.q-page {{ padding: 0 !important; }}
 .canoa-card {{
     background: {CARD}; border: 1px solid {BORDER}; border-radius: 14px;
     padding: {SPACE_SM}; box-shadow: 0 1px 3px rgba(0,0,0,0.06);

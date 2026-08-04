@@ -29,7 +29,7 @@ def _menu_para(user):
 @contextmanager
 def shell(active_path, user):
     """Uso: `with shell('/agenda', user): <conteúdo da página>`"""
-    collapsed = bool(user.get("sidebar_collapsed", False))
+    collapsed = bool(user.get("sidebar_collapsed", True))
     largura = SIDEBAR_W_COLLAPSED if collapsed else SIDEBAR_W
 
     def alternar_sidebar():
@@ -98,7 +98,7 @@ def shell(active_path, user):
         # ---- Área principal ----
         with ui.column().classes("flex-1").style(f"background:{BG}; min-height:100vh; gap:0;"):
             with ui.row().style(
-                "width:100%; background:white; border-bottom:1px solid #C3CBB8; "
+                "width:100%; background:white; "
                 "padding:14px 32px; align-items:center; justify-content:flex-end; gap:12px;"
             ):
                 dados = auth.get_usuario(user["id"])

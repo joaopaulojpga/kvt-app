@@ -40,7 +40,7 @@ def _grade_horarios_chips():
     with ui.column().style(
         "background:#EAF6F4; border-radius:12px; padding:20px 22px; gap:10px; width:100%;"
     ):
-        ui.label("Grade principal").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")
+        ui.label("Agenda de Remadas").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")
         dias = [
             ("Terça", ["06:00"]), ("Quinta", ["06:00"]),
             ("Sábado", ["06:00", "08:00"]), ("Domingo", ["07:00", "09:00"]),
@@ -55,11 +55,10 @@ def _grade_horarios_chips():
                                 f"background:{TEAL}; color:white; font-weight:700; font-size:12px; "
                                 "padding:5px 12px; border-radius:999px;"
                             )
-        ui.label("Vagas de 12, expansíveis até 18.").style(f"color:{TEXT_MUTED}; font-size:11.5px; margin-top:2px;")
 
 
 def _form_login():
-    with ui.column().classes("canoa-card").style("max-width:420px; gap:12px;"):
+    with ui.column().classes("canoa-card w-full").style("max-width:480px; width:100%; gap:12px;"):
         email = ui.input("E-mail").classes("w-full")
         senha = ui.input("Senha", password=True).classes("w-full")
         erro = ui.label("").style("color:#D9534F; font-size:13px;")
@@ -73,12 +72,12 @@ def _form_login():
             ui.navigate.to("/creditos")
 
         ui.button("Entrar", on_click=entrar).props("unelevated").style(
-            f"background:{TEAL}; color:white; font-weight:700;"
+            f"background:{TEAL}; color:white; font-weight:700; width:100%;"
         )
 
 
 def _form_cadastro():
-    with ui.column().classes("canoa-card").style("max-width:480px; gap:10px;"):
+    with ui.column().classes("canoa-card w-full").style("max-width:480px; width:100%; gap:10px;"):
         nome = ui.input("Nome completo *").classes("w-full")
         sexo = ui.select(["Feminino", "Masculino", "Outro"], value="Feminino", label="Sexo *").classes("w-full")
         email_c = ui.input("E-mail *").classes("w-full")
@@ -104,5 +103,5 @@ def _form_cadastro():
                 erro.set_text(str(e))
 
         ui.button("Criar minha conta", on_click=cadastrar).props("unelevated").style(
-            f"background:{TEAL}; color:white; font-weight:700;"
+            f"background:{TEAL}; color:white; font-weight:700; width:100%;"
         )

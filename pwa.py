@@ -30,7 +30,8 @@ _MANIFEST_B64 = base64.b64encode(json.dumps(_MANIFEST).encode("utf-8")).decode("
 
 PWA_HEAD_HTML = f"""
 <link rel="manifest" href="data:application/manifest+json;base64,{_MANIFEST_B64}">
-<link rel="icon" href="{_ICON_DATA_URI}">
+<link rel="icon" type="image/png" href="{_ICON_DATA_URI}">
+<link rel="shortcut icon" type="image/png" href="{_ICON_DATA_URI}">
 <link rel="apple-touch-icon" href="{_ICON_DATA_URI}">
 <meta name="theme-color" content="{NAVY}">
 <meta name="mobile-web-app-capable" content="yes">

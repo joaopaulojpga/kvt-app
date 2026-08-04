@@ -12,6 +12,7 @@ from logo_data import LOGO_KALANI_B64
 from theme import APP_NAME, BG, NAVY
 
 _ICON_DATA_URI = "data:image/png;base64," + LOGO_KALANI_B64
+FAVICON_DATA_URI = _ICON_DATA_URI
 
 _MANIFEST = {
     "name": APP_NAME,

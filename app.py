@@ -6,7 +6,7 @@ from nicegui import ui, app
 from db import init_db
 from seed import seed_demo
 from theme import GLOBAL_CSS
-from pwa import PWA_HEAD_HTML
+from pwa import PWA_HEAD_HTML, FAVICON_DATA_URI
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
 import payments
 import newsletters
@@ -139,6 +139,7 @@ if __name__ in {"__main__", "__mp_main__"}:
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8080)),
         title="Kalani Vaa Team",
+        favicon=FAVICON_DATA_URI,
         storage_secret=os.environ.get("NICEGUI_STORAGE_SECRET", "troque-esta-chave-em-producao"),
         reload=False,
     )

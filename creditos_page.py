@@ -23,10 +23,10 @@ def render(user):
             f"color:{TEAL_DARK}; font-size:13px; font-weight:700; margin-top:-12px;"
         )
 
-    _card_proxima_remada(user)
-
     section_title("Minhas Remadas")
     _card_remadas(user)
+
+    _card_proxima_remada(user)
 
     section_title("Novidades do clube")
     carousel.render_carousel()

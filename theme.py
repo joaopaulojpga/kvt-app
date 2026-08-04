@@ -66,6 +66,14 @@ body {{ background-color: {BG}; font-family: 'Inter', 'Segoe UI', Arial, sans-se
 .canoa-badge-danger {{ background: #FBEAEA; color: {DANGER}; }}
 .canoa-badge-muted {{ background: #EEF1F3; color: {TEXT_MUTED}; }}
 
+/* Mobile: o público majoritário acessa por celular — reduz padding excessivo
+   em telas estreitas nos containers principais (topo, conteúdo, landing). */
+@media (max-width: 640px) {{
+    .kv-main-content {{ padding: 16px !important; }}
+    .kv-topbar {{ padding: 10px 16px !important; }}
+    .kv-landing {{ padding: 24px 16px !important; }}
+}}
+
 /* Sistema tipográfico — 4 estilos apenas, conforme design system definido */
 .kv-titulo {{ font-size: {FONTE_TITULO}; font-weight: 800; line-height: 1.2; color: {NAVY}; }}
 .kv-subtitulo {{ font-size: {FONTE_SUBTITULO}; font-weight: 700; line-height: 1.25; color: {NAVY}; }}

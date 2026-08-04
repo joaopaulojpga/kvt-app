@@ -165,8 +165,8 @@ testar_carousel_com_dados()
 def testar_relatorio_aulas():
     try:
         import configuracoes_page as cp
-        cp._secao_relatorio_alunos()  # já chama _secao_relatorio_aulas() internamente
-        print("OK   configuracoes_page._secao_relatorio_alunos() (inclui relatório de aulas + seletor de mês)")
+        cp._secao_relatorio()  # relatório de aulas + seletor de mês (lista de alunos saiu daqui)
+        print("OK   configuracoes_page._secao_relatorio() (aba Relatórios, sem lista de alunos duplicada)")
     except Exception as e:
         erros.append(("configuracoes_page.relatorios", e))
         print(f"FALHOU configuracoes_page (aba Relatórios) -> {type(e).__name__}: {e}")

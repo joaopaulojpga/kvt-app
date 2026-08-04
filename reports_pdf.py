@@ -80,6 +80,54 @@ def gerar_pdf_relatorio(ano, mes, nome_mes, linhas, resumo):
     return saida.encode("latin-1")  # versões mais antigas do fpdf devolvem str
 
 
+def gerar_pdf_escala(ano, mes, nome_mes, turmas):
+    from fpdf import FPDF
+    from reports import STATUS_LABEL as _STATUS
+
+    pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=12)
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, f"Escala de instrutores - {nome_mes}/{ano}", ln=1)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(90, 90, 90)
+    pdf.cell(0, 6, "Kalani Vaa Team", ln=1)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(4)
+
+    pdf.set_font("Helvetica", "B", 10)
+    headers = ["Data", "Horario", "Tipo", "Instrutor responsavel", "Status"]
+    larguras = [30, 25, 30, 90, 40]
+
+    def cabecalho():
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(230, 235, 225)
+        for w, h in zip(larguras, headers):
+            pdf.cell(w, 8, h, border=1, fill=True)
+        pdf.ln()
+        pdf.set_font("Helvetica", "", 9)
+
+    cabecalho()
+    for t in turmas:
+        valores = [
+            str(t["data"]), t["horario"], t["tipo"].capitalize(),
+            t["instrutor_nome"] or "(sem instrutor)",
+            _STATUS.get(t["status"], t["status"]),
+        ]
+        if pdf.get_y() > 190:
+            pdf.add_page()
+            cabecalho()
+        for w, v in zip(larguras, valores):
+            pdf.cell(w, 7, _limpar(v), border=1)
+        pdf.ln()
+
+    saida = pdf.output()
+    if isinstance(saida, (bytes, bytearray)):
+        return bytes(saida)
+    return saida.encode("latin-1")
+
+
 def _limpar(texto):
     """Garante compatibilidade com a codificação latin-1 usada pelas fontes padrão do PDF."""
     return str(texto).encode("latin-1", errors="replace").decode("latin-1")

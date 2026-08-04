@@ -36,7 +36,7 @@ def render(user):
             if aba == "alunos":
                 _secao_lista_alunos()
             elif aba == "relatorios":
-                _secao_relatorio_alunos()
+                _secao_relatorio()
             elif aba == "newsletter":
                 _secao_newsletter()
             else:
@@ -121,30 +121,8 @@ def _form_editar_aluno(aluno, on_done):
         )
 
 
-def _secao_relatorio_alunos():
+def _secao_relatorio():
     _secao_relatorio_aulas()
-    ui.separator().style("margin:20px 0;")
-    ui.label("Lista de Alunos").style(f"color:{TEXT}; font-weight:700; font-size:15px;")
-    linhas = students.relatorio_alunos()
-    with ui.column().classes("canoa-card").style("width:100%; gap:0; overflow-x:auto;"):
-        headers = ["Nome", "Status", "Aulas presentes", "Última aula", "Nascimento", "WhatsApp"]
-        with ui.row().style(f"border-bottom:2px solid {BORDER}; padding-bottom:8px; gap:0; width:100%;"):
-            larguras = ["26%", "12%", "14%", "16%", "16%", "16%"]
-            for h, w in zip(headers, larguras):
-                ui.label(h).style(f"width:{w}; color:{TEXT_MUTED}; font-weight:700; font-size:11.5px;")
-
-        if not linhas:
-            ui.label("Nenhum aluno cadastrado ainda.").style(f"color:{TEXT_MUTED}; padding-top:10px;")
-
-        for linha in linhas:
-            with ui.row().style("padding:8px 0; gap:0; width:100%; border-bottom:1px solid #EEF1F3;"):
-                ui.label(linha["nome"]).style(f"width:26%; color:{TEXT}; font-size:12.5px;")
-                with ui.row().style("width:12%;"):
-                    badge(linha["status"], "ok" if linha["status"] == "Ativo" else "muted")
-                ui.label(str(linha["aulas_reservadas"])).style(f"width:14%; color:{TEXT}; font-size:12.5px;")
-                ui.label(linha["ultima_aula"] or "\u2014").style(f"width:16%; color:{TEXT}; font-size:12.5px;")
-                ui.label(linha["data_nascimento"] or "\u2014").style(f"width:16%; color:{TEXT}; font-size:12.5px;")
-                ui.label(linha["celular"]).style(f"width:16%; color:{TEXT}; font-size:12.5px;")
 
 
 def _secao_newsletter():
@@ -346,36 +324,38 @@ def _secao_relatorio_aulas():
 def _tabela_aulas(linhas):
     with ui.column().classes("canoa-card").style("width:100%; gap:0; overflow-x:auto;"):
         headers = ["Instrutor", "Dia/Hora", "Vagas", "Presentes", "Faltosos", "Status", "Repasse"]
-        larguras = ["20%", "16%", "10%", "12%", "12%", "16%", "14%"]
-        with ui.row().style(f"border-bottom:2px solid {BORDER}; padding-bottom:8px; gap:0; width:100%;"):
+        larguras = ["170px", "140px", "80px", "100px", "100px", "140px", "110px"]
+        min_total = "840px"
+        with ui.row().style(f"border-bottom:2px solid {BORDER}; padding-bottom:8px; gap:0; width:100%; min-width:{min_total};"):
             for h, w in zip(headers, larguras):
-                ui.label(h).style(f"width:{w}; color:{TEXT_MUTED}; font-weight:700; font-size:11.5px;")
+                ui.label(h).style(f"width:{w}; flex-shrink:0; color:{TEXT_MUTED}; font-weight:700; font-size:11.5px;")
         for l in linhas:
-            with ui.row().style("padding:7px 0; gap:0; width:100%; border-bottom:1px solid #EEF1F3;"):
-                ui.label(l["instrutor"]).style(f"width:20%; color:{TEXT}; font-size:12.5px;")
-                ui.label(f"{l['data']} {l['horario']}").style(f"width:16%; color:{TEXT}; font-size:12.5px;")
-                ui.label(str(l["vagas_ocupadas"])).style(f"width:10%; color:{TEXT}; font-size:12.5px;")
-                ui.label(str(l["presentes"])).style(f"width:12%; color:{TEXT}; font-size:12.5px;")
-                ui.label(str(l["faltosos"])).style(f"width:12%; color:{TEXT}; font-size:12.5px;")
+            with ui.row().style(f"padding:7px 0; gap:0; width:100%; min-width:{min_total}; border-bottom:1px solid #EEF1F3;"):
+                ui.label(l["instrutor"]).style(f"width:{larguras[0]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(f"{l['data']} {l['horario']}").style(f"width:{larguras[1]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(l["vagas_ocupadas"])).style(f"width:{larguras[2]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(l["presentes"])).style(f"width:{larguras[3]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(l["faltosos"])).style(f"width:{larguras[4]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
                 kind = "ok" if l["status"] == "Confirmada" else ("muted" if "Suspensa" in l["status"] else "warn")
-                with ui.row().style("width:16%;"):
+                with ui.row().style(f"width:{larguras[5]}; flex-shrink:0;"):
                     badge(l["status"], kind)
-                ui.label(reais(l["repasse_centavos"])).style(f"width:14%; color:{TEXT}; font-size:12.5px;")
+                ui.label(reais(l["repasse_centavos"])).style(f"width:{larguras[6]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
 
 
 def _tabela_resumo(resumo):
-    with ui.column().classes("canoa-card").style(f"width:100%; gap:0; background:#EAF6F4; border-color:{TEAL};"):
+    larguras = ["220px", "170px", "170px", "170px"]
+    min_total = "730px"
+    with ui.column().classes("canoa-card").style(f"width:100%; gap:0; background:#EAF6F4; border-color:{TEAL}; overflow-x:auto;"):
         headers = ["Instrutor", "Alunos atendidos", "Aulas ministradas", "Total do repasse"]
-        larguras = ["30%", "23%", "23%", "24%"]
-        with ui.row().style(f"border-bottom:2px solid {TEAL}; padding-bottom:8px; gap:0; width:100%;"):
+        with ui.row().style(f"border-bottom:2px solid {TEAL}; padding-bottom:8px; gap:0; width:100%; min-width:{min_total};"):
             for h, w in zip(headers, larguras):
-                ui.label(h).style(f"width:{w}; color:{TEAL_DARK}; font-weight:700; font-size:11.5px;")
+                ui.label(h).style(f"width:{w}; flex-shrink:0; color:{TEAL_DARK}; font-weight:700; font-size:11.5px;")
         for r in resumo:
-            with ui.row().style("padding:7px 0; gap:0; width:100%;"):
-                ui.label(r["instrutor"]).style(f"width:30%; color:{TEXT}; font-weight:700; font-size:12.5px;")
-                ui.label(str(r["alunos"])).style(f"width:23%; color:{TEXT}; font-size:12.5px;")
-                ui.label(str(r["aulas"])).style(f"width:23%; color:{TEXT}; font-size:12.5px;")
-                ui.label(reais(r["total_centavos"])).style(f"width:24%; color:{TEXT}; font-weight:700; font-size:12.5px;")
+            with ui.row().style(f"padding:7px 0; gap:0; width:100%; min-width:{min_total};"):
+                ui.label(r["instrutor"]).style(f"width:{larguras[0]}; flex-shrink:0; color:{TEXT}; font-weight:700; font-size:12.5px;")
+                ui.label(str(r["alunos"])).style(f"width:{larguras[1]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(r["aulas"])).style(f"width:{larguras[2]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(reais(r["total_centavos"])).style(f"width:{larguras[3]}; flex-shrink:0; color:{TEXT}; font-weight:700; font-size:12.5px;")
 
 
 
@@ -410,6 +390,20 @@ def _secao_escala():
             if not turmas:
                 ui.label("Nenhuma turma neste mês ainda.").style(f"color:{TEXT_MUTED};")
                 return
+
+            def exportar(ano=ano, mes=mes, turmas=turmas):
+                try:
+                    from reports_pdf import gerar_pdf_escala
+                    nome_mes = reports.MESES_PT[mes]
+                    pdf_bytes = gerar_pdf_escala(ano, mes, nome_mes, turmas)
+                    ui.download(pdf_bytes, f"escala-{reports.nome_arquivo_pdf(ano, mes)}.pdf")
+                except Exception as e:
+                    ui.notify(f"Não foi possível gerar o PDF: {e}", type="negative")
+
+            ui.button("\U0001F4C4 Exportar escala em PDF", on_click=exportar).props("outline").style(
+                f"color:{TEAL_DARK}; font-weight:700; margin-bottom:8px;"
+            )
+
             _tabela_escala(turmas, lambda: montar(rotulo_escolhido))
 
     seletor = ui.select(rotulos, value=rotulos[idx_atual], label="Mês").style("max-width:220px;")
@@ -422,31 +416,56 @@ def _tabela_escala(turmas, on_done):
     nomes_instrutores = [i["nome"] for i in instrutores]
     ids_por_nome = {i["nome"]: i["id"] for i in instrutores}
     SEM_INSTRUTOR = "(sem instrutor)"
+    pendentes = []  # (class_id, select) das linhas editáveis, pra alimentar o "Salvar tudo"
 
-    with ui.column().classes("canoa-card").style("width:100%; gap:0;"):
+    def salvar_tudo():
+        selecionadas = [(cid, sel) for cid, sel in pendentes if sel.value]
+        if not selecionadas:
+            ui.notify("Nenhuma linha com instrutor selecionado para salvar.", type="warning")
+            return
+        erros = 0
+        for class_id, sel in selecionadas:
+            try:
+                turmas_mod.atribuir_instrutor_escala(class_id, ids_por_nome[sel.value])
+            except TurmaError:
+                erros += 1
+        if erros:
+            ui.notify(f"{len(selecionadas) - erros} linha(s) salva(s), {erros} com erro.", type="warning")
+        else:
+            ui.notify(f"{len(selecionadas)} linha(s) salva(s) com sucesso.", type="positive")
+        on_done()
+
+    if any(t["status"] == "agendada" for t in turmas):
+        ui.button("\U0001F4BE Salvar tudo", on_click=salvar_tudo).props("unelevated").style(
+            f"background:{TEAL}; color:white; font-weight:700; margin-bottom:8px;"
+        )
+
+    with ui.column().classes("canoa-card").style("width:100%; gap:0; overflow-x:auto;"):
         headers = ["Data", "Horário", "Tipo", "Instrutor responsável", ""]
-        larguras = ["16%", "14%", "14%", "38%", "18%"]
-        with ui.row().style(f"border-bottom:2px solid {BORDER}; padding-bottom:8px; gap:0; width:100%;"):
+        larguras = ["100px", "90px", "90px", "260px", "110px"]
+        min_total = "650px"
+        with ui.row().style(f"border-bottom:2px solid {BORDER}; padding-bottom:8px; gap:0; width:100%; min-width:{min_total};"):
             for h, w in zip(headers, larguras):
-                ui.label(h).style(f"width:{w}; color:{TEXT_MUTED}; font-weight:700; font-size:11.5px;")
+                ui.label(h).style(f"width:{w}; flex-shrink:0; color:{TEXT_MUTED}; font-weight:700; font-size:11.5px;")
 
         for t in turmas:
             bloqueada = t["status"] != "agendada"
             with ui.row().style(
-                "padding:7px 0; gap:0; width:100%; align-items:center; border-bottom:1px solid #EEF1F3;"
+                f"padding:7px 0; gap:0; width:100%; min-width:{min_total}; align-items:center; border-bottom:1px solid #EEF1F3;"
             ):
-                ui.label(str(t["data"])).style(f"width:16%; color:{TEXT}; font-size:12.5px;")
-                ui.label(t["horario"]).style(f"width:14%; color:{TEXT}; font-size:12.5px;")
-                ui.label(t["tipo"].capitalize()).style(f"width:14%; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(t["data"])).style(f"width:{larguras[0]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(t["horario"]).style(f"width:{larguras[1]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(t["tipo"].capitalize()).style(f"width:{larguras[2]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
 
-                with ui.row().style("width:38%;"):
+                with ui.row().style(f"width:{larguras[3]}; flex-shrink:0;"):
                     if bloqueada:
                         ui.label(t["instrutor_nome"] or SEM_INSTRUTOR).style(f"color:{TEXT_MUTED}; font-size:12.5px;")
                     else:
                         valor_atual = t["instrutor_nome"] if t["instrutor_nome"] in nomes_instrutores else None
                         sel = ui.select(nomes_instrutores, value=valor_atual).style("width:220px;")
+                        pendentes.append((t["id"], sel))
 
-                with ui.row().style("width:18%;"):
+                with ui.row().style(f"width:{larguras[4]}; flex-shrink:0;"):
                     if bloqueada:
                         badge(STATUS_ESCALA.get(t["status"], t["status"]), "muted")
                     else:

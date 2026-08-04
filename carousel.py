@@ -10,8 +10,8 @@ MAPS_IFRAME = (
     '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3705.757594444719!'
     '2d-41.49500088845974!3d-21.750921380002293!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!'
     '1m2!1s0xbdcf00135da605%3A0xa3b1ff43a44b27fe!2sCanoa%20Havaiana%20-%20Kalani%20Vaa%20Team!'
-    '5e0!3m2!1spt-BR!2sbr!4v1785809559354!5m2!1spt-BR!2sbr" width="100%" height="420" '
-    'style="border:0;" allowfullscreen="" loading="lazy" '
+    '5e0!3m2!1spt-BR!2sbr!4v1785809559354!5m2!1spt-BR!2sbr" width="100%" height="100%" '
+    'style="border:0; display:block;" allowfullscreen="" loading="lazy" '
     'referrerpolicy="strict-origin-when-cross-origin"></iframe>'
 )
 
@@ -30,9 +30,14 @@ def _abrir_modal_conteudo(item):
 
 
 def _abrir_modal_mapa():
-    with ui.dialog() as dialog, ui.card().style("max-width:640px; padding:16px; gap:10px;"):
+    with ui.dialog() as dialog, ui.card().style(
+        "width:min(640px, 92vw); max-width:640px; padding:16px; gap:10px;"
+    ):
         ui.label("Onde treinamos").style(f"color:{NAVY}; font-weight:800; font-size:16px;")
-        ui.html(MAPS_IFRAME).style("width:100%;")
+        with ui.element("div").style(
+            "width:100%; height:min(420px, 60vh); border-radius:8px; overflow:hidden;"
+        ):
+            ui.html(MAPS_IFRAME).style("width:100%; height:100%;")
         ui.button("Fechar", on_click=dialog.close).props("flat").style(f"color:{TEAL_DARK}; align-self:flex-end;")
     dialog.open()
 

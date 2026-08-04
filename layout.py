@@ -26,81 +26,86 @@ def _menu_para(user):
     return itens
 
 
-@contextmanager
-def shell(active_path, user):
-    """Uso: `with shell('/agenda', user): <conteúdo da página>`"""
+@ui.refreshable
+def _sidebar(active_path, user):
     collapsed = bool(user.get("sidebar_collapsed", True))
     largura = SIDEBAR_W_COLLAPSED if collapsed else SIDEBAR_W
 
     def alternar_sidebar():
         user["sidebar_collapsed"] = not collapsed
-        ui.navigate.to(active_path)
+        _sidebar.refresh(active_path, user)
 
-    with ui.row().classes("w-full no-wrap").style("min-height:100vh; margin:0; gap:0;"):
-        # ---- Sidebar ----
-        with ui.column().style(
-            f"width:{largura}; min-width:{largura}; background:{NAVY}; "
-            "min-height:100vh; padding:16px 0; gap:0; transition:width 0.15s ease;"
+    with ui.column().style(
+        f"width:{largura}; min-width:{largura}; background:{NAVY}; "
+        "min-height:100vh; padding:16px 0; gap:0; transition:width 0.12s ease; flex-shrink:0;"
+    ):
+        # Cabeçalho: logo + nome (se expandido) e botão de recolher, lado a lado
+        with ui.row().style(
+            f"align-items:center; gap:8px; padding:0 {'0' if collapsed else '16'}px 16px "
+            f"{'0' if collapsed else '16'}px; "
+            f"justify-content:{'center' if collapsed else 'space-between'};"
         ):
-            # Cabeçalho: logo + nome (se expandido) e botão de recolher, lado a lado
-            with ui.row().style(
-                f"align-items:center; gap:8px; padding:0 {'0' if collapsed else '16'}px 16px "
-                f"{'0' if collapsed else '16'}px; "
-                f"justify-content:{'center' if collapsed else 'space-between'};"
-            ):
-                with ui.row().style("align-items:center; gap:8px;"):
-                    ui.image(LOGO_KALANI_DATA_URI).style("width:32px; height:32px; border-radius:50%; flex-shrink:0;")
-                    if not collapsed:
-                        ui.label(APP_NAME).style(
-                            "color:white; font-size:15px; font-weight:800; line-height:1.15;"
-                        )
+            with ui.row().style("align-items:center; gap:8px;"):
+                ui.image(LOGO_KALANI_DATA_URI).style("width:32px; height:32px; border-radius:50%; flex-shrink:0;")
                 if not collapsed:
-                    ui.button(icon="menu_open", on_click=alternar_sidebar).props(
-                        "flat dense round"
-                    ).style("color:#9FBE86;").tooltip("Recolher")
-
-            if collapsed:
-                with ui.row().style("justify-content:center; padding-bottom:8px;"):
-                    ui.button(icon="menu", on_click=alternar_sidebar).props(
-                        "flat dense round"
-                    ).style("color:#9FBE86;").tooltip("Expandir")
-            ui.separator().style("background:#243318; opacity:0.5;")
-
-            # Itens de menu — ícone sempre, texto só quando expandido
-            with ui.column().style("gap:0; margin-top:8px;"):
-                for label, path, icone in _menu_para(user):
-                    ativo = path == active_path
-                    item = ui.row().style(
-                        f"padding:12px {'0' if collapsed else '20'}px; cursor:pointer; align-items:center; "
-                        f"justify-content:{'center' if collapsed else 'flex-start'}; gap:12px; "
-                        f"background:{TEAL_DARK if ativo else 'transparent'};"
+                    ui.label(APP_NAME).style(
+                        "color:white; font-size:15px; font-weight:800; line-height:1.15;"
                     )
-                    with item:
-                        ui.icon(icone).style(
-                            f"color:{'white' if ativo else '#CDE8B8'}; font-size:20px;"
-                        )
-                        if not collapsed:
-                            ui.label(label).style(
-                                f"color:{'white' if ativo else '#CDE8B8'}; "
-                                f"font-weight:{'700' if ativo else '400'}; font-size:13.5px;"
-                            )
-                    if collapsed:
-                        item.tooltip(label)
-                    item.on("click", lambda p=path: ui.navigate.to(p))
-
-            ui.space()
-
             if not collapsed:
-                ui.label("MVP \u2022 NiceGUI").style(
-                    "color:#5E7A47; font-size:10.5px; padding:8px 20px 0 20px;"
+                ui.button(icon="menu_open", on_click=alternar_sidebar).props(
+                    "flat dense round"
+                ).style("color:#9FBE86;").tooltip("Recolher")
+
+        if collapsed:
+            with ui.row().style("justify-content:center; padding-bottom:8px;"):
+                ui.button(icon="menu", on_click=alternar_sidebar).props(
+                    "flat dense round"
+                ).style("color:#9FBE86;").tooltip("Expandir")
+        ui.separator().style("background:#243318; opacity:0.5;")
+
+        # Itens de menu — ícone sempre, texto só quando expandido
+        with ui.column().style("gap:0; margin-top:8px;"):
+            for label, path, icone in _menu_para(user):
+                ativo = path == active_path
+                item = ui.row().style(
+                    f"padding:12px {'0' if collapsed else '20'}px; cursor:pointer; align-items:center; "
+                    f"justify-content:{'center' if collapsed else 'flex-start'}; gap:12px; "
+                    f"background:{TEAL_DARK if ativo else 'transparent'};"
                 )
+                with item:
+                    ui.icon(icone).style(
+                        f"color:{'white' if ativo else '#CDE8B8'}; font-size:20px;"
+                    )
+                    if not collapsed:
+                        ui.label(label).style(
+                            f"color:{'white' if ativo else '#CDE8B8'}; "
+                            f"font-weight:{'700' if ativo else '400'}; font-size:13.5px;"
+                        )
+                if collapsed:
+                    item.tooltip(label)
+                item.on("click", lambda p=path: ui.navigate.to(p))
+
+        ui.space()
+
+        if not collapsed:
+            ui.label("MVP \u2022 NiceGUI").style(
+                "color:#5E7A47; font-size:10.5px; padding:8px 20px 0 20px;"
+            )
+
+
+@contextmanager
+def shell(active_path, user):
+    """Uso: `with shell('/agenda', user): <conteúdo da página>`"""
+    with ui.row().classes("w-full no-wrap").style("min-height:100vh; margin:0; gap:0;"):
+        # ---- Sidebar (componente independente, recolhe/expande sem reload de página) ----
+        _sidebar(active_path, user)
 
         # ---- Área principal ----
         with ui.column().classes("flex-1").style(f"background:{BG}; min-height:100vh; gap:0;"):
             with ui.row().style(
                 "width:100%; background:white; "
                 "padding:14px 32px; align-items:center; justify-content:flex-end; gap:12px;"
-            ):
+            ).classes("kv-topbar"):
                 dados = auth.get_usuario(user["id"])
                 foto = dados.get("foto_url") if dados else None
                 with ui.row().style("align-items:center; gap:10px;"):
@@ -127,5 +132,5 @@ def shell(active_path, user):
                         f"color:{TEXT_MUTED}; font-size:12px;"
                     )
 
-            with ui.column().style("padding:32px; gap:16px; flex:1;") as content:
+            with ui.column().style("padding:32px; gap:16px; flex:1;").classes("kv-main-content") as content:
                 yield content

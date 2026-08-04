@@ -7,7 +7,7 @@ import carousel
 
 
 def render():
-    with ui.column().style("max-width:900px; margin:0 auto; padding:48px 24px; gap:24px;"):
+    with ui.column().style("max-width:900px; margin:0 auto; padding:48px 24px; gap:24px;").classes("kv-landing"):
         with ui.row().style("align-items:center; gap:10px;"):
             ui.image(LOGO_KALANI_DATA_URI).style("width:40px; height:40px; border-radius:50%;")
             ui.label(APP_NAME).style(f"color:{NAVY}; font-size:26px; font-weight:800;")
@@ -40,14 +40,21 @@ def _grade_horarios_chips():
     with ui.column().style(
         "background:#EAF6F4; border-radius:12px; padding:20px 22px; gap:10px; width:100%;"
     ):
-        ui.label("Agenda de Remadas").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")
+        ui.label("Agenda de Remadas").style(
+            f"color:{TEAL_DARK}; font-weight:800; font-size:14px; "
+            "text-transform:uppercase; letter-spacing:0.6px;"
+        )
         dias = [
             ("Terça", ["06:00"]), ("Quinta", ["06:00"]),
             ("Sábado", ["06:00", "08:00"]), ("Domingo", ["07:00", "09:00"]),
         ]
-        with ui.row().style("gap:20px; flex-wrap:wrap;"):
-            for dia, horarios in dias:
-                with ui.column().style("gap:6px; min-width:100px;"):
+        with ui.row().style("gap:0; flex-wrap:wrap; width:100%;"):
+            for i, (dia, horarios) in enumerate(dias):
+                borda = "border-left:1px solid #C9E0DB; " if i > 0 else ""
+                with ui.column().style(
+                    f"gap:8px; min-width:100px; padding:0 20px; {borda}"
+                    + ("padding-left:0;" if i == 0 else "")
+                ):
                     ui.label(dia).style(f"color:{TEXT}; font-weight:700; font-size:12.5px;")
                     with ui.row().style("gap:6px; flex-wrap:wrap;"):
                         for h in horarios:

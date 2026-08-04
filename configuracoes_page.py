@@ -246,6 +246,10 @@ def _form_newsletter(item, on_done):
         botao_label = ui.input("Texto do botão", value=item["botao_label"] if editando else "Saiba mais").classes("w-full")
         botao_cta = ui.select(CTAS, value=item["botao_cta"] if editando else "abrir_modal",
                                label="Ação do botão (CTA)").classes("w-full")
+        link_url = ui.input("URL de destino (Instagram, WhatsApp etc.)",
+                             value=(item.get("link_url") or "") if editando else "").classes("w-full")
+        link_url.visible = botao_cta.value == "abrir_link"
+        botao_cta.on_value_change(lambda e: setattr(link_url, "visible", e.value == "abrir_link"))
         status = ui.select(["ativo", "inativo"], value=item["status"] if editando else "ativo",
                             label="Status").classes("w-full")
         erro = ui.label("").style(f"color:{DANGER}; font-size:12.5px;")
@@ -254,11 +258,15 @@ def _form_newsletter(item, on_done):
             if not titulo.value or not head_texto.value:
                 erro.set_text("Título e Head são obrigatórios.")
                 return
+            if botao_cta.value == "abrir_link" and not link_url.value:
+                erro.set_text("Informe a URL de destino para o CTA de link externo.")
+                return
             campos = dict(
                 titulo=titulo.value, head_texto=head_texto.value, head_estilo=head_estilo.value,
                 corpo_texto=corpo_texto.value or "", imagem_url=imagem_atual["data_uri"],
                 imagem_posicao=imagem_posicao.value, botao_label=botao_label.value or "Saiba mais",
                 botao_cta=botao_cta.value, status=status.value,
+                link_url=link_url.value if botao_cta.value == "abrir_link" else None,
             )
             if editando:
                 newsletters.atualizar(item["id"], **campos)

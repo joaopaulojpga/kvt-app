@@ -42,25 +42,28 @@ def shell(active_path, user):
             f"width:{largura}; min-width:{largura}; background:{NAVY}; "
             "min-height:100vh; padding:16px 0; gap:0; transition:width 0.15s ease;"
         ):
-            # Botão de recolher/expandir — fixo no topo
+            # Cabeçalho: logo + nome (se expandido) e botão de recolher, lado a lado
             with ui.row().style(
-                f"padding:0 {'0' if collapsed else '16'}px 12px {'0' if collapsed else '16'}px; "
-                f"justify-content:{'center' if collapsed else 'flex-end'};"
+                f"align-items:center; gap:8px; padding:0 {'0' if collapsed else '16'}px 16px "
+                f"{'0' if collapsed else '16'}px; "
+                f"justify-content:{'center' if collapsed else 'space-between'};"
             ):
-                ui.button(icon="menu" if collapsed else "menu_open", on_click=alternar_sidebar).props(
-                    "flat dense round"
-                ).style("color:#9FBE86;").tooltip("Expandir" if collapsed else "Recolher")
-
-            # Cabeçalho: logo (+ nome, se expandido)
-            with ui.row().style(
-                f"align-items:center; gap:10px; padding:0 {'0' if collapsed else '20'}px 16px "
-                f"{'0' if collapsed else '20'}px; justify-content:{'center' if collapsed else 'flex-start'};"
-            ):
-                ui.image(LOGO_KALANI_DATA_URI).style("width:36px; height:36px; border-radius:50%; flex-shrink:0;")
+                with ui.row().style("align-items:center; gap:8px;"):
+                    ui.image(LOGO_KALANI_DATA_URI).style("width:32px; height:32px; border-radius:50%; flex-shrink:0;")
+                    if not collapsed:
+                        ui.label(APP_NAME).style(
+                            "color:white; font-size:15px; font-weight:800; line-height:1.15;"
+                        )
                 if not collapsed:
-                    ui.label(APP_NAME).style(
-                        "color:white; font-size:15px; font-weight:800; line-height:1.15;"
-                    )
+                    ui.button(icon="menu_open", on_click=alternar_sidebar).props(
+                        "flat dense round"
+                    ).style("color:#9FBE86;").tooltip("Recolher")
+
+            if collapsed:
+                with ui.row().style("justify-content:center; padding-bottom:8px;"):
+                    ui.button(icon="menu", on_click=alternar_sidebar).props(
+                        "flat dense round"
+                    ).style("color:#9FBE86;").tooltip("Expandir")
             ui.separator().style("background:#243318; opacity:0.5;")
 
             # Itens de menu — ícone sempre, texto só quando expandido

@@ -127,6 +127,8 @@ def _desenhar_slide(item):
                 _rolar_ate_cadastro()
             elif c == "abrir_mapa":
                 _abrir_modal_mapa()
+            elif c == "abrir_link" and i.get("link_url"):
+                ui.navigate.to(i["link_url"], new_tab=True)
 
         ui.button(label, on_click=acionar).props("unelevated").style(
             f"background:{TEAL}; color:white; font-weight:700; width:fit-content; margin-top:6px;"

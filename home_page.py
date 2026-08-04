@@ -14,24 +14,14 @@ def render():
 
         carousel.render_carousel()
 
-        with ui.row().style("gap:16px; width:100%;"):
-            for titulo, desc in [
-                ("1. Cadastre-se", "Crie sua conta com seus dados e comece."),
-                ("2. Compre créditos", "Avulso ou em pacotes, com desconto."),
-                ("3. Reserve sua aula", "Escolha o dia na agenda e faça check-in."),
-            ]:
-                with ui.column().classes("canoa-card").style("flex:1; gap:6px;"):
-                    ui.label(titulo).style(f"color:{TEXT}; font-weight:700; font-size:14px;")
-                    ui.label(desc).style(f"color:{TEXT_MUTED}; font-size:12.5px;")
+        ui.button("COMEÇAR AGORA", on_click=lambda: ui.run_javascript(
+            "document.getElementById('cadastro-section')?.scrollIntoView({behavior:'smooth'});"
+        )).props("unelevated").style(
+            f"background:{TEAL}; color:white; font-weight:800; font-size:16px; "
+            "width:100%; padding:16px; border-radius:12px; letter-spacing:0.5px;"
+        )
 
-        with ui.column().style(
-            "background:#EAF6F4; border-radius:12px; padding:18px 22px; gap:2px;"
-        ):
-            ui.label("Grade principal").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")
-            ui.label(
-                "Terça 6h \u2022 Quinta 6h \u2022 Sábado 6h e 8h \u2022 Domingo 7h e 9h "
-                "\u2014 vagas de 12, expansíveis até 18."
-            ).style(f"color:{TEXT}; font-size:13px;")
+        _grade_horarios_chips()
 
         with ui.column().style("width:100%;").props('id="cadastro-section"'):
             with ui.tabs().classes("w-full") as tabs:
@@ -44,6 +34,28 @@ def render():
                     _form_login()
                 with ui.tab_panel(tab_cadastro):
                     _form_cadastro()
+
+
+def _grade_horarios_chips():
+    with ui.column().style(
+        "background:#EAF6F4; border-radius:12px; padding:20px 22px; gap:10px; width:100%;"
+    ):
+        ui.label("Grade principal").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")
+        dias = [
+            ("Terça", ["06:00"]), ("Quinta", ["06:00"]),
+            ("Sábado", ["06:00", "08:00"]), ("Domingo", ["07:00", "09:00"]),
+        ]
+        with ui.row().style("gap:20px; flex-wrap:wrap;"):
+            for dia, horarios in dias:
+                with ui.column().style("gap:6px; min-width:100px;"):
+                    ui.label(dia).style(f"color:{TEXT}; font-weight:700; font-size:12.5px;")
+                    with ui.row().style("gap:6px; flex-wrap:wrap;"):
+                        for h in horarios:
+                            ui.label(h).style(
+                                f"background:{TEAL}; color:white; font-weight:700; font-size:12px; "
+                                "padding:5px 12px; border-radius:999px;"
+                            )
+        ui.label("Vagas de 12, expansíveis até 18.").style(f"color:{TEXT_MUTED}; font-size:11.5px; margin-top:2px;")
 
 
 def _form_login():

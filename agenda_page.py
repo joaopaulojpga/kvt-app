@@ -5,7 +5,8 @@ import calendar
 from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, DANGER, WARN
 from ui_helpers import page_title, badge
 from db import db
-import reservations, attendance, classes as turmas_mod, email as email_mod
+import reservations, attendance, classes as turmas_mod, mailer as email_mod
+import booking_modal
 from reservations import ReservaError
 from classes import TurmaError
 
@@ -165,7 +166,7 @@ def _linha_turma(t, user, hoje, on_done):
                         try:
                             resultado = reservations.reservar(user["id"], class_id)
                             if resultado["status"] == "confirmada":
-                                ui.notify("Reserva confirmada! 1 crédito consumido.", type="positive")
+                                booking_modal.mostrar_confirmacao(t["data"], t["horario"])
                             else:
                                 ui.notify(
                                     "Turma no limite de vagas. Solicitação enviada para aprovação "
@@ -192,7 +193,7 @@ def _linha_turma(t, user, hoje, on_done):
                 if user["role"] == "instrutor" and t["status"] == "agendada":
                     def cancelar(class_id=t["id"]):
                         attendance.cancelar_turma_pelo_instrutor(class_id)
-                        ui.notify("Turma cancelada. Créditos devolvidos com +7 dias de validade.", type="warning")
+                        ui.notify("Turma cancelada. Remadas devolvidas com +7 dias de validade.", type="warning")
                         on_done()
 
                     ui.button("Cancelar turma", on_click=cancelar).props("outline").style(

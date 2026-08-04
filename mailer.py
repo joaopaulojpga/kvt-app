@@ -55,7 +55,7 @@ def enviar_confirmacao_compra(destinatario, nome, plano_nome, quantidade_credito
       <h2 style="color:#123B57;">Compra confirmada! \U0001F6F6</h2>
       <p>Oi, {nome}!</p>
       <p>Seu pagamento do <b>{plano_nome}</b> foi aprovado e
-      <b>{quantidade_creditos} crédito(s)</b> já estão disponíveis na
+      <b>{quantidade_creditos} remada(s)</b> já estão disponíveis na
       sua conta do Kalani Vaa Team.</p>
       <p>Bons remos!</p>
     </div>

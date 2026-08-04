@@ -47,7 +47,7 @@ def aprovar_expansao(reservation_id, instrutor2_id, hoje=None):
 
         credit_id = credits.consumir_um_credito(res["user_id"], hoje=hoje)
         if credit_id is None:
-            raise ExpansaoError("Aluno não tem mais créditos disponíveis para confirmar a vaga.")
+            raise ExpansaoError("Aluno não tem mais remadas disponíveis para confirmar a vaga.")
 
         conn.execute(
             "UPDATE reservations SET status = 'confirmada', credit_id = ? WHERE id = ?",

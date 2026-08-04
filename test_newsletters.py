@@ -50,4 +50,28 @@ newsletters.atualizar(id1, campo_que_nao_existe="xyz", titulo="Bem-vindo ao club
 approx(newsletters.obter(id1)["titulo"], "Bem-vindo ao clube")
 
 print("OK — CRUD de newsletters (criar, listar ativas/todas, editar, ativar/desativar).")
+
+# ---- seed inicial (6 slides reais) ----
+criados = newsletters.seed_newsletters_iniciais()
+approx(criados, 0, "não deveria semear de novo — a tabela já tinha newsletters dos testes acima")
+
+# limpa a tabela (via SQL direto) pra simular um banco novo e testar o seed de verdade
+from db import db as _db
+with _db() as conn:
+    conn.execute("DELETE FROM newsletters")
+
+criados2 = newsletters.seed_newsletters_iniciais()
+approx(criados2, 6, "deveria criar os 6 slides iniciais em uma tabela vazia")
+approx(len(newsletters.listar_ativas()), 6)
+
+slide6 = next(n for n in newsletters.listar_todas() if n["titulo"] == "Faça parte da comunidade")
+approx(slide6["botao_cta"], "abrir_link")
+approx(slide6["link_url"], "https://www.instagram.com/kalani_vaa/")
+
+# rodar de novo não duplica
+criados3 = newsletters.seed_newsletters_iniciais()
+approx(criados3, 0, "não deveria duplicar os slides num segundo boot")
+approx(len(newsletters.listar_todas()), 6)
+print("OK — seed dos 6 slides iniciais funciona e é idempotente (não duplica em redeploys).")
+
 print("\nTodos os testes de newsletters passaram.")

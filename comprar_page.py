@@ -18,8 +18,8 @@ def render(user):
     page_title("Comprar Remadas")
     ui.label(
         "Ao clicar em \"Comprar\", você será redirecionado para o ambiente seguro "
-        "do Mercado Pago para pagar via Pix ou cartão. Seus créditos aparecem em "
-        "\"Meus Créditos\" assim que o pagamento for aprovado."
+        "do Mercado Pago para pagar via Pix ou cartão. Suas remadas aparecem em "
+        "\"Minhas Remadas\" assim que o pagamento for aprovado."
     ).style(f"color:{TEXT_MUTED}; font-size:12.5px; max-width:560px;")
 
     msg = ui.label("")
@@ -34,7 +34,7 @@ def render(user):
             ui.navigate.to(url, new_tab=True)
             msg.set_text(
                 "Abrimos uma nova aba para você concluir o pagamento no Mercado Pago. "
-                "Depois de pagar, seus créditos aparecem em \"Meus Créditos\" em poucos instantes."
+                "Depois de pagar, suas remadas aparecem em \"Minhas Remadas\" em poucos instantes."
             )
             msg.style(f"color:{TEAL_DARK}; font-size:13px; font-weight:600;")
         except PagamentoError as e:
@@ -57,11 +57,11 @@ def render(user):
                 ui.label(plano["nome"]).style(f"color:{TEXT}; font-weight:700; font-size:14px;")
                 ui.label(reais(preco)).style(f"color:{NAVY}; font-size:22px; font-weight:800;")
                 if plano["creditos"] > 1:
-                    ui.label(f"{plano['creditos']} créditos \u2022 {reais(preco // plano['creditos'])}/remada").style(
+                    ui.label(f"{plano['creditos']} remadas \u2022 {reais(preco // plano['creditos'])}/remada").style(
                         f"color:{TEXT_MUTED}; font-size:11.5px;"
                     )
                 else:
-                    ui.label("1 crédito").style(f"color:{TEXT_MUTED}; font-size:11.5px;")
+                    ui.label("1 remada").style(f"color:{TEXT_MUTED}; font-size:11.5px;")
                 ui.button(
                     "Comprar", on_click=lambda k=key: comprar(k)
                 ).props("unelevated" if destaque else "outline").style(

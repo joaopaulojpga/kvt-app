@@ -25,10 +25,10 @@ def badge(texto, kind="ok"):
 
 
 def section_title(texto):
-    ui.label(texto).style(f"color:{TEXT}; font-size:18px; font-weight:700; margin-top:8px;")
+    ui.label(texto).classes("kv-subtitulo").style("margin-top:8px;")
 
 
 def page_title(texto, subtitulo=None):
-    ui.label(texto).style(f"color:{NAVY}; font-size:26px; font-weight:800;")
+    ui.label(texto).classes("kv-titulo")
     if subtitulo:
-        ui.label(subtitulo).style(f"color:{TEXT_MUTED}; font-size:13px; margin-top:-8px;")
+        ui.label(subtitulo).classes("kv-legenda").style("margin-top:-8px;")

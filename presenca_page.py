@@ -133,7 +133,7 @@ def _linha_dar_baixa(t, on_done):
                         msg += f" \u2022 Repasse instrutor 2: {reais(detalhe['repasse_instrutor2_centavos'])}"
                     ui.notify(msg, type="positive")
                 else:
-                    ui.notify("Turma marcada como suspensa. Créditos devolvidos com +7 dias de validade.", type="warning")
+                    ui.notify("Turma marcada como suspensa. Remadas devolvidas com +7 dias de validade.", type="warning")
                 on_done()
             except BaixaError as e:
                 erro.set_text(str(e))

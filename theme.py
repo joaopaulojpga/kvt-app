@@ -1,22 +1,48 @@
 # -*- coding: utf-8 -*-
-"""Tema visual do app — identidade Kalani Vaa Team."""
+"""Tema visual do app — identidade Kalani Vaa Team.
 
-# Paleta oficial
-TEAL = "#62A832"        # primária
-TEAL_DARK = "#497E25"   # primária escurecida (hover/ativo)
-NAVY = "#0B1307"        # secundária (sidebar, textos fortes)
-NAVY_DARK = "#0B1307"
-BG = "#CFD6C7"          # neutro claro (fundo das páginas)
-CARD = "#FFFFFF"        # fundo dos cards (contraste sobre o fundo neutro)
-BORDER = "#A7AFA0"      # neutro intermediário (bordas)
-TEXT = "#0B1307"        # texto principal
-TEXT_MUTED = "#5F6859"  # neutro escuro (texto secundário)
+Paleta reduzida a 5 tons (verde escuro, verde médio, verde claro, cinza
+neutro, branco) + cores semânticas de status (erro/aviso/sucesso, que
+não fazem parte da identidade, são só sinalização).
+"""
+
+# ---- Paleta (5 tons) ----
+NAVY = "#0B1307"        # verde escuro — sidebar, textos fortes, títulos
+TEAL = "#62A832"        # verde médio — cor primária (botões, links, destaque)
+TEAL_DARK = "#497E25"   # verde médio escurecido — hover/estado ativo (variação do primário, não conta como tom novo)
+TEAL_LIGHT = "#EAF6F4"  # verde claro — fundos suaves, cards de destaque
+GRAY = "#5F6859"        # cinza neutro — texto secundário, bordas, ícones inativos
+WHITE = "#FFFFFF"       # branco — fundo de cards, texto sobre fundo escuro
+
+# Aliases mantidos para não quebrar imports existentes em outras telas
+NAVY_DARK = NAVY
+BG = "#CFD6C7"           # tom de fundo da página (tinta clara sobre o cinza neutro)
+CARD = WHITE
+BORDER = "#A7AFA0"       # variação clara do cinza neutro, só para linhas divisórias
+TEXT = NAVY
+TEXT_MUTED = GRAY
+
+# Cores semânticas (status) — não fazem parte da identidade visual, só comunicam estado
 DANGER = "#D9534F"
 WARN = "#E6A23C"
 OK = "#3FA35A"
 
-SIDEBAR_W = "230px"
-SIDEBAR_W_COLLAPSED = "72px"
+# ---- Espaçamento em múltiplos de 8px ----
+SPACE_XS = "8px"
+SPACE_SM = "16px"
+SPACE_MD = "24px"
+SPACE_LG = "32px"
+SPACE_XL = "40px"
+
+# ---- Tipografia (4 estilos apenas) ----
+# Use via .classes("kv-titulo" | "kv-subtitulo" | "kv-texto" | "kv-legenda")
+FONTE_TITULO = "24px"
+FONTE_SUBTITULO = "16px"
+FONTE_TEXTO = "14px"
+FONTE_LEGENDA = "12px"
+
+SIDEBAR_W = "208px"
+SIDEBAR_W_COLLAPSED = "64px"
 
 APP_NAME = "Kalani Vaa Team"
 LOGO_PATH = "/assets/logo_kalani.png"
@@ -30,13 +56,19 @@ GLOBAL_CSS = f"""
 body {{ background-color: {BG}; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; }}
 .canoa-card {{
     background: {CARD}; border: 1px solid {BORDER}; border-radius: 14px;
-    padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    padding: {SPACE_SM}; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }}
-.canoa-badge {{ border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: 600; }}
+.canoa-badge {{ border-radius: 999px; padding: 3px 12px; font-size: {FONTE_LEGENDA}; font-weight: 600; }}
 .canoa-badge-ok {{ background: #EAF7EE; color: {OK}; }}
 .canoa-badge-warn {{ background: #FDF3E4; color: #8A5A12; }}
 .canoa-badge-danger {{ background: #FBEAEA; color: {DANGER}; }}
 .canoa-badge-muted {{ background: #EEF1F3; color: {TEXT_MUTED}; }}
+
+/* Sistema tipográfico — 4 estilos apenas, conforme design system definido */
+.kv-titulo {{ font-size: {FONTE_TITULO}; font-weight: 800; line-height: 1.2; color: {NAVY}; }}
+.kv-subtitulo {{ font-size: {FONTE_SUBTITULO}; font-weight: 700; line-height: 1.25; color: {NAVY}; }}
+.kv-texto {{ font-size: {FONTE_TEXTO}; font-weight: 400; line-height: 1.4; color: {TEXT}; }}
+.kv-legenda {{ font-size: {FONTE_LEGENDA}; font-weight: 400; line-height: 1.3; color: {TEXT_MUTED}; }}
 
 /* Estilos pré-definidos para o campo "Head" da Newsletter (opção A: presets, sem editor livre) */
 .kv-head-titulo-grande {{ font-size: 30px; font-weight: 800; line-height: 1.15; }}

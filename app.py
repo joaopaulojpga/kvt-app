@@ -6,13 +6,16 @@ from nicegui import ui, app
 from db import init_db
 from seed import seed_demo
 from theme import GLOBAL_CSS
+from pwa import PWA_HEAD_HTML
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
 import payments
+import newsletters
 from layout import shell
 
 init_db()
 if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
     seed_demo()
+newsletters.seed_newsletters_iniciais()
 
 
 @app.post("/webhook/mercadopago")
@@ -42,7 +45,7 @@ def _require_role(*roles):
 
 @ui.page("/")
 def pagina_home():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if _logged_in():
         ui.navigate.to("/creditos")
         return
@@ -51,7 +54,7 @@ def pagina_home():
 
 @ui.page("/creditos")
 def pagina_creditos():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -61,7 +64,7 @@ def pagina_creditos():
 
 @ui.page("/comprar")
 def pagina_comprar():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -71,7 +74,7 @@ def pagina_comprar():
 
 @ui.page("/agenda")
 def pagina_agenda():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -81,7 +84,7 @@ def pagina_agenda():
 
 @ui.page("/perfil")
 def pagina_perfil():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -91,7 +94,7 @@ def pagina_perfil():
 
 @ui.page("/presenca")
 def pagina_presenca():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -104,7 +107,7 @@ def pagina_presenca():
 
 @ui.page("/dashboard")
 def pagina_dashboard():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -117,7 +120,7 @@ def pagina_dashboard():
 
 @ui.page("/configuracoes")
 def pagina_configuracoes():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
     if not _logged_in():
         ui.navigate.to("/")
         return

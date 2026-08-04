@@ -10,7 +10,8 @@ Regras aplicadas (confirmadas na especificação):
 - Cancelamento até `horas_limite_cancelamento` (12h) antes do início
   não consome/devolve o crédito.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+import calendar
 from db import db, get_param
 import credits
 
@@ -57,7 +58,7 @@ def reservar(user_id, class_id, hoje=None):
             # Fluxo normal: consome crédito na hora
             credit_id = credits.consumir_um_credito(user_id, hoje=hoje)
             if credit_id is None:
-                raise ReservaError("Sem créditos disponíveis. Compre um pacote para reservar.")
+                raise ReservaError("Sem remadas disponíveis. Compre um pacote para reservar.")
             conn.execute(
                 "INSERT INTO reservations (class_id, user_id, credit_id, status, is_vaga_extra) "
                 "VALUES (?, ?, ?, 'confirmada', 0)",
@@ -113,3 +114,33 @@ def listar_participantes(class_id):
             (class_id,),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def proxima_reserva(user_id, hoje=None):
+    """Próxima remada confirmada do aluno (para o card de destaque da Home)."""
+    hoje = hoje or date.today()
+    with db() as conn:
+        row = conn.execute(
+            "SELECT r.id, c.data, c.horario, c.tipo FROM reservations r "
+            "JOIN classes c ON c.id = r.class_id "
+            "WHERE r.user_id = ? AND r.status = 'confirmada' AND c.data >= ? "
+            "ORDER BY c.data ASC, c.horario ASC LIMIT 1",
+            (user_id, hoje.isoformat()),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def contagem_remadas_mes(user_id, ano=None, mes=None):
+    """Quantas remadas o aluno realmente compareceu neste mês (indicador de frequência na Home)."""
+    hoje = date.today()
+    ano = ano or hoje.year
+    mes = mes or hoje.month
+    primeiro = date(ano, mes, 1)
+    ultimo = date(ano, mes, calendar.monthrange(ano, mes)[1])
+    with db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM reservations r JOIN classes c ON c.id = r.class_id "
+            "WHERE r.user_id = ? AND r.status = 'presente' AND c.data BETWEEN ? AND ?",
+            (user_id, primeiro.isoformat(), ultimo.isoformat()),
+        ).fetchone()
+    return row["n"]

@@ -5,26 +5,48 @@ import calendar
 from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, DANGER, WARN
 from ui_helpers import page_title, badge
 from db import db
-import reservations, attendance, classes as turmas_mod, mailer as email_mod
+import reservations, attendance, classes as turmas_mod, mailer as email_mod, credits
 import booking_modal
 from reservations import ReservaError
 from classes import TurmaError
 
+from reports import MESES_PT
+
 DIAS_PT = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+LOCAL_CLUBE = "Lagoa de Cima"
+TURMAS_POR_PAGINA = 6  # grade 2 colunas x 3 linhas
+
+_CAMPOS_TURMA = (
+    "c.*, u.nome AS instrutor_nome, u2.nome AS instrutor2_nome, "
+    "(SELECT COUNT(*) FROM reservations r WHERE r.class_id = c.id "
+    "   AND r.status IN ('confirmada','presente','faltou')) AS confirmados"
+)
+_FROM_TURMA = (
+    "FROM classes c "
+    "JOIN users u ON u.id = c.instrutor_resp_id "  # INNER JOIN: só turmas com instrutor responsável definido
+    "LEFT JOIN users u2 ON u2.id = c.instrutor2_id "
+)
 
 
-def _turmas_do_mes(hoje):
-    primeiro = hoje.replace(day=1)
-    ultimo_dia = calendar.monthrange(hoje.year, hoje.month)[1]
-    ultimo = hoje.replace(day=ultimo_dia)
+def _proximas_turmas(hoje, limite=6):
+    """A remada mais próxima + as N-1 seguintes, independente do mês."""
     with db() as conn:
         rows = conn.execute(
-            "SELECT c.*, u.nome AS instrutor_nome, u2.nome AS instrutor2_nome, "
-            "  (SELECT COUNT(*) FROM reservations r WHERE r.class_id = c.id "
-            "     AND r.status IN ('confirmada','presente','faltou')) AS confirmados "
-            "FROM classes c "
-            "JOIN users u ON u.id = c.instrutor_resp_id "
-            "LEFT JOIN users u2 ON u2.id = c.instrutor2_id "
+            f"SELECT {_CAMPOS_TURMA} {_FROM_TURMA}"
+            "WHERE c.data >= ? AND c.status != 'cancelada' "
+            "ORDER BY c.data, c.horario LIMIT ?",
+            (hoje.isoformat(), limite),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _turmas_do_mes(ano, mes):
+    primeiro = date(ano, mes, 1)
+    ultimo_dia = calendar.monthrange(ano, mes)[1]
+    ultimo = date(ano, mes, ultimo_dia)
+    with db() as conn:
+        rows = conn.execute(
+            f"SELECT {_CAMPOS_TURMA} {_FROM_TURMA}"
             "WHERE c.data BETWEEN ? AND ? AND c.status != 'cancelada' "
             "ORDER BY c.data, c.horario",
             (primeiro.isoformat(), ultimo.isoformat()),
@@ -34,26 +56,70 @@ def _turmas_do_mes(hoje):
 
 def render(user, hoje=None):
     hoje = hoje or date.today()
-    page_title(f"Agenda de Turmas", hoje.strftime("%B/%Y").capitalize())
-    ui.label("Datas anteriores não aparecem para reserva \u2022 mostrando apenas o mês vigente.").style(
-        f"color:{TEXT_MUTED}; font-size:12px; margin-top:-8px;"
-    )
+    page_title("Agenda de Turmas")
 
-    lista_container = ui.column().style("width:100%; gap:12px;")
+    estado = {"modo": "proximas", "ano": hoje.year, "mes": hoje.month}
+    corpo = ui.column().style("width:100%; gap:12px;")
 
-    def recarregar():
-        lista_container.clear()
-        turmas = _turmas_do_mes(hoje)
-        with lista_container:
+    def ir_proximas():
+        estado["modo"] = "proximas"
+        redesenhar()
+
+    def ir_mes(delta):
+        estado["modo"] = "mes"
+        total = estado["ano"] * 12 + (estado["mes"] - 1) + delta
+        novo_ano, novo_mes = total // 12, total % 12 + 1
+        # não navega para meses anteriores ao vigente (mesma regra já aplicada em Escala/Relatórios)
+        if (novo_ano, novo_mes) >= (hoje.year, hoje.month):
+            estado["ano"], estado["mes"] = novo_ano, novo_mes
+        redesenhar()
+
+    def redesenhar():
+        corpo.clear()
+        with corpo:
+            with ui.row().style("gap:8px; flex-wrap:wrap; align-items:center;"):
+                ui.button("Próximas remadas", on_click=ir_proximas).props(
+                    "unelevated" if estado["modo"] == "proximas" else "outline"
+                ).style(
+                    (f"background:{TEAL}; color:white;" if estado["modo"] == "proximas" else f"color:{TEAL_DARK};")
+                    + " font-weight:700;"
+                )
+                ui.button("Ver por mês", on_click=lambda: ir_mes(0)).props(
+                    "unelevated" if estado["modo"] == "mes" else "outline"
+                ).style(
+                    (f"background:{TEAL}; color:white;" if estado["modo"] == "mes" else f"color:{TEAL_DARK};")
+                    + " font-weight:700;"
+                )
+
+            if estado["modo"] == "proximas":
+                ui.label("Sua próxima remada e as 5 seguintes, considerando a grade padrão.").style(
+                    f"color:{TEXT_MUTED}; font-size:12px;"
+                )
+                turmas = _proximas_turmas(hoje)
+            else:
+                no_mes_vigente = (estado["ano"], estado["mes"]) == (hoje.year, hoje.month)
+                with ui.row().style("gap:6px; align-items:center;"):
+                    ui.button(icon="chevron_left", on_click=lambda: ir_mes(-1)).props(
+                        "flat dense round"
+                    ).style(f"color:{TEAL_DARK};").set_enabled(not no_mes_vigente)
+                    ui.label(f"{MESES_PT[estado['mes']].capitalize()}/{estado['ano']}").style(
+                        f"color:{TEXT}; font-weight:700; font-size:14px; min-width:120px; text-align:center;"
+                    )
+                    ui.button(icon="chevron_right", on_click=lambda: ir_mes(1)).props(
+                        "flat dense round"
+                    ).style(f"color:{TEAL_DARK};")
+                turmas = [t for t in _turmas_do_mes(estado["ano"], estado["mes"])
+                          if date.fromisoformat(str(t["data"])) >= hoje]
+
             if not turmas:
-                ui.label("Nenhuma turma cadastrada para este mês ainda.").style(f"color:{TEXT_MUTED};")
-            for t in turmas:
-                _linha_turma(t, user, hoje, recarregar)
+                ui.label("Nenhuma turma encontrada.").style(f"color:{TEXT_MUTED};")
+            else:
+                _grade_turmas(turmas, user, hoje, redesenhar)
 
     if user["role"] == "instrutor":
-        _form_criar_turma(user, hoje, recarregar)
+        _form_criar_turma(user, hoje, redesenhar)
 
-    recarregar()
+    redesenhar()
 
 
 def _form_editar_turma(t, on_done):
@@ -128,92 +194,205 @@ def _form_criar_turma(user, hoje, on_done):
             )
 
 
-def _linha_turma(t, user, hoje, on_done):
+def _grade_turmas(turmas, user, hoje, on_done):
+    estado_pg = {"pagina": 0}
+    total_paginas = max(1, -(-len(turmas) // TURMAS_POR_PAGINA))  # ceil
+    grade_container = ui.column().style("width:100%; gap:12px;")
+
+    def desenhar_pagina():
+        grade_container.clear()
+        inicio = estado_pg["pagina"] * TURMAS_POR_PAGINA
+        pagina_turmas = turmas[inicio:inicio + TURMAS_POR_PAGINA]
+        with grade_container:
+            with ui.element("div").style(
+                "display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; width:100%;"
+            ):
+                for t in pagina_turmas:
+                    _card_turma(t, user, hoje, on_done)
+
+            if total_paginas > 1:
+                with ui.row().style("gap:10px; align-items:center; justify-content:center; width:100%; margin-top:4px;"):
+                    ui.button(icon="chevron_left", on_click=lambda: mudar_pagina(-1)).props(
+                        "flat dense round"
+                    ).style(f"color:{TEAL_DARK};").set_enabled(estado_pg["pagina"] > 0)
+                    ui.label(f"Página {estado_pg['pagina'] + 1} de {total_paginas}").style(
+                        f"color:{TEXT_MUTED}; font-size:12.5px;"
+                    )
+                    ui.button(icon="chevron_right", on_click=lambda: mudar_pagina(1)).props(
+                        "flat dense round"
+                    ).style(f"color:{TEAL_DARK};").set_enabled(estado_pg["pagina"] < total_paginas - 1)
+
+    def mudar_pagina(delta):
+        estado_pg["pagina"] = max(0, min(total_paginas - 1, estado_pg["pagina"] + delta))
+        desenhar_pagina()
+
+    desenhar_pagina()
+
+
+def _card_turma(t, user, hoje, on_done):
     data_turma = t["data"] if isinstance(t["data"], date) else date.fromisoformat(str(t["data"]))
-    if data_turma < hoje:
-        return
     dia_semana = DIAS_PT[data_turma.weekday()]
     vagas_base_turma = t["vagas_base"] or 12
     vagas_max_turma = t["vagas_max"] or 18
     limite_exibido = vagas_base_turma if t["confirmados"] <= vagas_base_turma else vagas_max_turma
-    vagas_str = f"{t['confirmados']}/{limite_exibido}"
 
-    with ui.expansion(
-        f"{dia_semana}, {t['data']} \u2014 {t['horario']} \u2022 {t['tipo'].capitalize()} \u2022 "
-        f"{vagas_str} vagas" + (f" \u2022 {t['status'].upper()}" if t["status"] != "agendada" else "")
-    ).classes("canoa-card").style("width:100%;"):
-        with ui.column().style("gap:10px; padding-top:8px;"):
-            resp_txt = f"Instrutor responsável: {t['instrutor_nome']}"
-            if t["instrutor2_nome"]:
-                resp_txt += f" \u2022 Instrutor extra: {t['instrutor2_nome']}"
-            ui.label(resp_txt).style(f"color:{TEXT_MUTED}; font-size:12px;")
+    participantes = reservations.listar_participantes(t["id"])
+    minha_reserva = next((p for p in participantes if p.get("user_id") == user["id"]), None)
+    ja_reservado = minha_reserva is not None
 
-            participantes = reservations.listar_participantes(t["id"])
-            if participantes:
-                ui.label("Participantes confirmados:").style(f"color:{TEXT}; font-weight:700; font-size:13px;")
-                for i, p in enumerate(participantes, 1):
-                    marca = " (aguardando aprovação)" if p["status"] == "pendente_aprovacao" else ""
+    with ui.column().classes("canoa-card").style("width:100%; gap:10px; padding:16px;"):
+        with ui.row().style("justify-content:space-between; align-items:flex-start; width:100%;"):
+            with ui.row().style("gap:8px; align-items:center;"):
+                ui.icon("event", size="22px").style(f"color:{TEAL};")
+                with ui.column().style("gap:0;"):
+                    ui.label(data_turma.strftime("%d/%m")).style(
+                        f"color:{NAVY}; font-size:20px; font-weight:800; line-height:1.1;"
+                    )
+                    ui.label(dia_semana).style(f"color:{TEXT_MUTED}; font-size:12px;")
+            with ui.column().style(
+                f"background:#EAF6F4; border-radius:50%; width:52px; height:52px; "
+                "align-items:center; justify-content:center; gap:0; flex-shrink:0;"
+            ):
+                ui.label(f"{t['confirmados']}/{limite_exibido}").style(
+                    f"color:{TEAL_DARK}; font-weight:800; font-size:12px; line-height:1.1;"
+                )
+                ui.label("vagas").style(f"color:{TEAL_DARK}; font-size:8.5px;")
+
+        with ui.column().style("gap:3px; width:100%;"):
+            with ui.row().style("gap:6px; align-items:center;"):
+                ui.icon("schedule", size="14px").style(f"color:{TEXT_MUTED};")
+                ui.label(f"às {t['horario']}").style(f"color:{TEXT}; font-size:12.5px;")
+            with ui.row().style("gap:6px; align-items:center;"):
+                ui.icon("sports", size="14px").style(f"color:{TEXT_MUTED};")
+                ui.label(f"Instrutor: {t['instrutor_nome']}").style(f"color:{TEXT}; font-size:12.5px;")
+            with ui.row().style("gap:6px; align-items:center;"):
+                ui.icon("place", size="14px").style(f"color:{TEXT_MUTED};")
+                ui.label(LOCAL_CLUBE).style(f"color:{TEXT}; font-size:12.5px;")
+
+        if t["status"] != "agendada":
+            badge(t["status"].replace("_", " ").upper(), "muted")
+        elif ja_reservado:
+            badge(
+                "Aguardando aprovação" if minha_reserva["status"] == "pendente_aprovacao" else "Você está inscrito(a)",
+                "warn" if minha_reserva["status"] == "pendente_aprovacao" else "ok",
+            )
+
+        msg = ui.label("").style(f"color:{DANGER}; font-size:11.5px;")
+
+        def reservar(class_id=t["id"]):
+            try:
+                resultado = reservations.reservar(user["id"], class_id)
+                if resultado["status"] == "confirmada":
+                    booking_modal.mostrar_confirmacao(t["data"], t["horario"])
+                else:
+                    ui.notify(
+                        "Turma no limite de vagas. Solicitação enviada para aprovação "
+                        "do instrutor responsável.", type="warning"
+                    )
+                    with db() as conn:
+                        instrutor = conn.execute(
+                            "SELECT nome, email FROM users WHERE id = ?", (t["instrutor_resp_id"],)
+                        ).fetchone()
+                    if instrutor:
+                        email_mod.enviar_notificacao_expansao(
+                            instrutor["email"], instrutor["nome"], user["nome"],
+                            t["data"], t["horario"],
+                        )
+                on_done()
+            except ReservaError as e:
+                msg.set_text(str(e))
+
+        def desfazer(res_id=minha_reserva["id"] if minha_reserva else None):
+            try:
+                reservations.cancelar_reserva(res_id)
+                ui.notify("Reserva desfeita. Sua remada foi devolvida.", type="positive")
+                on_done()
+            except ReservaError as e:
+                msg.set_text(str(e))
+
+        if t["status"] == "agendada" and not ja_reservado:
+            ui.button("Reservar", icon="chevron_right", on_click=reservar).props(
+                "unelevated"
+            ).classes("w-full").style(f"background:{TEAL}; color:white; font-weight:700;")
+        elif t["status"] == "agendada" and ja_reservado and minha_reserva["status"] != "pendente_aprovacao":
+            ui.button("Desfazer reserva", on_click=desfazer).props("outline").classes("w-full").style(
+                f"color:{DANGER}; font-weight:700;"
+            ).tooltip("Permitido até 12h antes do início da aula")
+
+        ui.label("Ver detalhes").style(
+            f"color:{TEAL_DARK}; font-size:12px; font-weight:700; text-decoration:underline; "
+            "cursor:pointer; align-self:center;"
+        ).on("click", lambda: _abrir_detalhes_turma(t, user, on_done))
+
+
+def _abrir_detalhes_turma(t, user, on_done):
+    with ui.dialog() as dialog, ui.card().style("width:min(520px, 92vw); padding:20px; gap:10px;"):
+        data_turma = t["data"] if isinstance(t["data"], date) else date.fromisoformat(str(t["data"]))
+        dia_semana = DIAS_PT[data_turma.weekday()]
+        ui.label(f"{dia_semana}, {t['data']} \u2014 {t['horario']}").style(
+            f"color:{NAVY}; font-weight:800; font-size:16px;"
+        )
+        resp_txt = f"Instrutor responsável: {t['instrutor_nome']}"
+        if t["instrutor2_nome"]:
+            resp_txt += f" \u2022 Instrutor extra: {t['instrutor2_nome']}"
+        ui.label(resp_txt).style(f"color:{TEXT_MUTED}; font-size:12px;")
+
+        def fechar_e_atualizar():
+            dialog.close()
+            on_done()
+
+        participantes = reservations.listar_participantes(t["id"])
+        if participantes:
+            ui.label("Participantes confirmados:").style(f"color:{TEXT}; font-weight:700; font-size:13px;")
+            for i, p in enumerate(participantes, 1):
+                marca = " (aguardando aprovação)" if p["status"] == "pendente_aprovacao" else ""
+                with ui.row().style("align-items:center; gap:8px;"):
                     ui.label(f"{i}. {p['nome']}{marca}").style(f"color:{TEXT_MUTED}; font-size:12.5px;")
-            else:
-                ui.label("Nenhum participante ainda.").style(f"color:{TEXT_MUTED}; font-size:12.5px;")
+                    if user["role"] == "instrutor":
+                        def remover(res_id=p["id"], nome=p["nome"]):
+                            try:
+                                reservations.remover_aluno(res_id)
+                                ui.notify(f"{nome} removido(a) da turma \u2014 crédito devolvido.", type="positive")
+                                fechar_e_atualizar()
+                            except ReservaError as e:
+                                ui.notify(str(e), type="negative")
 
-            ja_reservado = any(p.get("user_id") == user["id"] for p in participantes)
-            msg = ui.label("")
+                        ui.icon("close", size="16px").style(
+                            f"color:{DANGER}; cursor:pointer;"
+                        ).tooltip("Remover aluno (devolve o crédito)").on("click", remover)
+        else:
+            ui.label("Nenhum participante ainda.").style(f"color:{TEXT_MUTED}; font-size:12.5px;")
 
+        if user["role"] == "instrutor" and t["status"] == "agendada":
+            ui.separator()
             with ui.row().style("gap:10px;"):
-                if t["status"] == "agendada" and not ja_reservado:
-                    def reservar(class_id=t["id"]):
-                        try:
-                            resultado = reservations.reservar(user["id"], class_id)
-                            if resultado["status"] == "confirmada":
-                                booking_modal.mostrar_confirmacao(t["data"], t["horario"])
-                            else:
-                                ui.notify(
-                                    "Turma no limite de vagas. Solicitação enviada para aprovação "
-                                    "do instrutor responsável.", type="warning"
-                                )
-                                with db() as conn:
-                                    instrutor = conn.execute(
-                                        "SELECT nome, email FROM users WHERE id = ?", (t["instrutor_resp_id"],)
-                                    ).fetchone()
-                                if instrutor:
-                                    email_mod.enviar_notificacao_expansao(
-                                        instrutor["email"], instrutor["nome"], user["nome"],
-                                        t["data"], t["horario"],
-                                    )
-                            on_done()
-                        except ReservaError as e:
-                            msg.set_text(str(e))
-                            msg.style(f"color:{DANGER}; font-size:12.5px;")
+                def cancelar(class_id=t["id"]):
+                    attendance.cancelar_turma_pelo_instrutor(class_id)
+                    ui.notify("Turma cancelada. Remadas devolvidas com +7 dias de validade.", type="warning")
+                    fechar_e_atualizar()
 
-                    ui.button("Reservar", on_click=reservar).props("unelevated").style(
-                        f"background:{TEAL}; color:white; font-weight:700;"
-                    )
+                ui.button("Cancelar turma", on_click=cancelar).props("outline").style(
+                    f"color:{DANGER}; font-weight:700;"
+                )
 
-                if user["role"] == "instrutor" and t["status"] == "agendada":
-                    def cancelar(class_id=t["id"]):
-                        attendance.cancelar_turma_pelo_instrutor(class_id)
-                        ui.notify("Turma cancelada. Remadas devolvidas com +7 dias de validade.", type="warning")
-                        on_done()
+                edit_container = ui.column().style("width:100%;")
 
-                    ui.button("Cancelar turma", on_click=cancelar).props("outline").style(
-                        f"color:{DANGER}; font-weight:700;"
-                    )
+                def abrir_edicao():
+                    edit_container.clear()
+                    with edit_container:
+                        _form_editar_turma(t, fechar_e_atualizar)
 
-                    edit_container = ui.column().style("width:100%;")
+                ui.button("Editar turma", on_click=abrir_edicao).props("outline").style(
+                    f"color:{TEAL_DARK}; font-weight:700;"
+                )
 
-                    def abrir_edicao():
-                        edit_container.clear()
-                        with edit_container:
-                            _form_editar_turma(t, on_done)
+            ui.separator()
+            _form_editar_vagas(t, fechar_e_atualizar)
 
-                    ui.button("Editar turma", on_click=abrir_edicao).props("outline").style(
-                        f"color:{TEAL_DARK}; font-weight:700;"
-                    )
-
-            if user["role"] == "instrutor" and t["status"] == "agendada":
-                ui.separator()
-                _form_editar_vagas(t, on_done)
+        ui.button("Fechar", on_click=dialog.close).props("flat").style(
+            f"color:{TEXT_MUTED}; align-self:flex-end;"
+        )
+    dialog.open()
 
 
 def _form_editar_vagas(t, on_done):

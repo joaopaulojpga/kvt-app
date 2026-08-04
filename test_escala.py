@@ -81,7 +81,7 @@ turmas_sem_instrutor = [t for t in turmas_mod.listar_turmas_mes_admin(2026, 8)
                          if t["instrutor_resp_id"] is None and t["status"] == "agendada"]
 assert len(turmas_sem_instrutor) > 0, "deveria sobrar pelo menos uma turma sem instrutor pros próximos testes"
 
-agenda_do_mes = _turmas_do_mes(date(2026, 8, 1))
+agenda_do_mes = _turmas_do_mes(2026, 8)
 ids_na_agenda = {t["id"] for t in agenda_do_mes}
 for t in turmas_sem_instrutor:
     assert t["id"] not in ids_na_agenda, "turma sem instrutor não deveria aparecer na Agenda"

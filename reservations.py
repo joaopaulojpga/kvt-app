@@ -99,10 +99,30 @@ def cancelar_reserva(reservation_id, agora=None):
             raise ReservaError(
                 f"Cancelamento não permitido a menos de {horas_limite}h do início da aula."
             )
-        conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
         if res["credit_id"] is not None:
             # devolve o crédito com a validade original (não é suspensão/cancelamento do instrutor)
             credits.devolver_credito(res["credit_id"], motivo_extensao=False)
+        conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
+
+
+def remover_aluno(reservation_id):
+    """
+    Remove um aluno de uma turma por ação do instrutor (ex: aluno pediu
+    para sair por fora do prazo de 12h, ou foi um lançamento por engano).
+    Diferente do cancelamento feito pelo próprio aluno em `cancelar_reserva`,
+    esta ação NÃO respeita a janela de 12h — é uma correção administrativa.
+    O crédito é devolvido com a validade original (sem a extensão de +7
+    dias, que é exclusiva de suspensão por clima/quórum).
+    """
+    with db() as conn:
+        res = conn.execute("SELECT * FROM reservations WHERE id = ?", (reservation_id,)).fetchone()
+        if res is None:
+            raise ReservaError("Reserva não encontrada.")
+        if res["status"] == "cancelada":
+            raise ReservaError("Esta reserva já está cancelada.")
+        if res["credit_id"] is not None:
+            credits.devolver_credito(res["credit_id"], motivo_extensao=False)
+        conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
 
 
 def listar_participantes(class_id):

@@ -46,7 +46,7 @@ def atualizar_perfil(user_id, **campos):
     # "email" propositalmente fora daqui: o e-mail é o identificador de
     # login do usuário e não pode ser alterado por esta função, mesmo
     # que alguém passe email=... por engano em uma chamada futura.
-    campos_validos = {"nome", "sexo", "cpf", "celular", "instagram", "foto_url"}
+    campos_validos = {"nome", "sexo", "cpf", "celular", "instagram", "foto_url", "data_nascimento"}
     sets, valores = [], []
     for k, v in campos.items():
         if k in campos_validos:

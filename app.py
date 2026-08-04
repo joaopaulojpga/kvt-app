@@ -6,7 +6,7 @@ from nicegui import ui, app
 from db import init_db
 from seed import seed_demo
 from theme import GLOBAL_CSS
-import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page
+import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
 import payments
 from layout import shell
 
@@ -113,6 +113,19 @@ def pagina_dashboard():
         return
     with shell("/dashboard", app.storage.user):
         dashboard_page.render(app.storage.user)
+
+
+@ui.page("/configuracoes")
+def pagina_configuracoes():
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>")
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    if not _require_role("gestor"):
+        ui.navigate.to("/creditos")
+        return
+    with shell("/configuracoes", app.storage.user):
+        configuracoes_page.render(app.storage.user)
 
 
 # A "storage_secret" assina o cookie de sessão do usuário — troque por um

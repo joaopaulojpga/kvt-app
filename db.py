@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
     celular         TEXT NOT NULL,
     instagram       TEXT,
     foto_url        TEXT,
+    data_nascimento DATE,
     role            TEXT NOT NULL DEFAULT 'aluno',
     ativo           INTEGER NOT NULL DEFAULT 1,
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -128,6 +129,7 @@ CREATE TABLE IF NOT EXISTS users (
     celular         TEXT NOT NULL,
     instagram       TEXT,
     foto_url        TEXT,
+    data_nascimento DATE,
     role            TEXT NOT NULL DEFAULT 'aluno',
     ativo           INTEGER NOT NULL DEFAULT 1,
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -272,10 +274,26 @@ def db():
 
 
 def init_db():
-    """Cria as tabelas se ainda não existirem (idempotente)."""
+    """Cria as tabelas se ainda não existirem (idempotente) e aplica migrações leves."""
     schema = SCHEMA_POSTGRES if IS_POSTGRES else SCHEMA_SQLITE
     with db() as conn:
         conn.executescript(schema)
+    _migrar_colunas_novas()
+
+
+def _migrar_colunas_novas():
+    """
+    Adiciona colunas novas em bancos que já existiam antes delas (como o
+    banco de produção no Supabase, que já tem usuários cadastrados).
+    Nunca apaga ou altera dado existente — só adiciona coluna vazia.
+    """
+    with db() as conn:
+        if IS_POSTGRES:
+            conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS data_nascimento DATE")
+        else:
+            colunas = [r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+            if "data_nascimento" not in colunas:
+                conn.execute("ALTER TABLE users ADD COLUMN data_nascimento DATE")
 
 
 def get_param(chave, default=None, cast=str):

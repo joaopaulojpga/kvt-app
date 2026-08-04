@@ -76,6 +76,7 @@ fake_ui.navigate = fake_navigate
 fake_nicegui = types.ModuleType("nicegui")
 fake_nicegui.ui = fake_ui
 fake_nicegui.app = fake_app
+fake_nicegui.events = types.SimpleNamespace(UploadEventArguments=object)
 sys.modules["nicegui"] = fake_nicegui
 
 from db import init_db, db as dbctx  # noqa: E402
@@ -111,6 +112,7 @@ testar("agenda_page", "render", user_instrutor)
 testar("perfil_page", "render", user_instrutor)
 testar("presenca_page", "render", user_instrutor)
 testar("dashboard_page", "render", user_gestor)
+testar("configuracoes_page", "render", user_gestor)
 
 # layout.shell também precisa funcionar (é usado por toda página autenticada)
 try:

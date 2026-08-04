@@ -4,11 +4,13 @@ from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED
 from ui_helpers import page_title, badge, section_title
 from db import db
 import credits
+import carousel
 
 
 def render(user):
-    page_title("Meus Créditos")
+    page_title("Home")
 
+    section_title("Meus Créditos")
     saldo = credits.saldo_disponivel(user["id"])
     validade = credits.proxima_validade(user["id"])
 
@@ -43,6 +45,9 @@ def render(user):
             ui.button("Reservar aula \u2192", on_click=lambda: ui.navigate.to("/agenda")).props(
                 "unelevated"
             ).style(f"background:{TEAL}; color:white; font-weight:700; margin-top:6px; width:fit-content;")
+
+    section_title("Novidades do clube")
+    carousel.render_carousel()
 
     section_title("Histórico de remadas")
 

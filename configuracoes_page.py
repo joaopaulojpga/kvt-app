@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
-from nicegui import ui
-from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, BORDER, DANGER
+from nicegui import ui, events
+import base64
+import io
+from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, BORDER, DANGER, HEAD_STYLES
 from ui_helpers import page_title, badge
 import auth
 import students
+import newsletters
+from newsletters import CTAS
+
+IMG_MAX_PX = (1200, 600)
 
 
 def render(user):
@@ -15,22 +21,20 @@ def render(user):
         aba_container.clear()
         with aba_container:
             with ui.row().style("gap:8px; margin-bottom:4px;"):
-                ui.button("Lista de Alunos", on_click=lambda: mostrar("alunos")).props(
-                    "unelevated" if aba == "alunos" else "outline"
-                ).style(
-                    (f"background:{TEAL}; color:white;" if aba == "alunos" else f"color:{TEAL_DARK};")
-                    + " font-weight:700;"
-                )
-                ui.button("Relatórios", on_click=lambda: mostrar("relatorios")).props(
-                    "unelevated" if aba == "relatorios" else "outline"
-                ).style(
-                    (f"background:{TEAL}; color:white;" if aba == "relatorios" else f"color:{TEAL_DARK};")
-                    + " font-weight:700;"
-                )
+                for chave, rotulo in [("alunos", "Lista de Alunos"), ("relatorios", "Relatórios"),
+                                       ("newsletter", "Newsletter")]:
+                    ui.button(rotulo, on_click=lambda c=chave: mostrar(c)).props(
+                        "unelevated" if aba == chave else "outline"
+                    ).style(
+                        (f"background:{TEAL}; color:white;" if aba == chave else f"color:{TEAL_DARK};")
+                        + " font-weight:700;"
+                    )
             if aba == "alunos":
                 _secao_lista_alunos()
-            else:
+            elif aba == "relatorios":
                 _secao_relatorio_alunos()
+            else:
+                _secao_newsletter()
 
     mostrar("alunos")
 
@@ -132,3 +136,129 @@ def _secao_relatorio_alunos():
                 ui.label(linha["ultima_aula"] or "\u2014").style(f"width:16%; color:{TEXT}; font-size:12.5px;")
                 ui.label(linha["data_nascimento"] or "\u2014").style(f"width:16%; color:{TEXT}; font-size:12.5px;")
                 ui.label(linha["celular"]).style(f"width:16%; color:{TEXT}; font-size:12.5px;")
+
+
+def _secao_newsletter():
+    lista_container = ui.column().style("width:100%; gap:10px;")
+    form_container = ui.column().style("width:100%;")
+
+    def recarregar():
+        lista_container.clear()
+        itens = newsletters.listar_todas()
+        with lista_container:
+            with ui.row().style("justify-content:space-between; align-items:center; width:100%;"):
+                ui.label(f"{len(itens)} newsletter(s) cadastrada(s)").style(f"color:{TEXT_MUTED}; font-size:12.5px;")
+
+                def abrir_criacao():
+                    form_container.clear()
+                    with form_container:
+                        _form_newsletter(None, recarregar)
+
+                ui.button("\u2795 Criar novo", on_click=abrir_criacao).props("unelevated").style(
+                    f"background:{TEAL}; color:white; font-weight:700;"
+                )
+
+            if not itens:
+                ui.label("Nenhuma newsletter cadastrada ainda \u2014 o carrossel fica oculto até a primeira ser criada.").style(
+                    f"color:{TEXT_MUTED};"
+                )
+            for item in itens:
+                with ui.row().classes("canoa-card").style(
+                    "width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;"
+                ):
+                    with ui.column().style("gap:0;"):
+                        ui.label(item["titulo"]).style(f"color:{TEXT}; font-weight:700; font-size:14px;")
+                        ui.label(f"CTA: {CTAS.get(item['botao_cta'], item['botao_cta'])}").style(
+                            f"color:{TEXT_MUTED}; font-size:11.5px;"
+                        )
+                    with ui.row().style("gap:10px; align-items:center;"):
+                        badge("Ativo" if item["status"] == "ativo" else "Inativo",
+                              "ok" if item["status"] == "ativo" else "muted")
+
+                        def editar(i=item):
+                            form_container.clear()
+                            with form_container:
+                                _form_newsletter(i, recarregar)
+
+                        ui.button("Editar", on_click=editar).props("flat dense").style(
+                            f"color:{TEAL_DARK}; font-weight:700;"
+                        )
+
+    recarregar()
+
+
+def _form_newsletter(item, on_done):
+    """item=None -> criação; item preenchido -> edição."""
+    editando = item is not None
+    imagem_atual = {"data_uri": item["imagem_url"] if editando else None}
+
+    with ui.column().classes("canoa-card").style(f"width:100%; border-color:{TEAL}; gap:10px; max-width:640px;"):
+        ui.label("Editar newsletter" if editando else "Nova newsletter").style(
+            f"color:{TEAL_DARK}; font-weight:700; font-size:14px;"
+        )
+
+        titulo = ui.input("Título do slide *", value=item["titulo"] if editando else "").classes("w-full")
+        head_texto = ui.input("Head (texto de destaque) *", value=item["head_texto"] if editando else "").classes("w-full")
+        head_estilo = ui.select(list(HEAD_STYLES.keys()),
+                                 value=item["head_estilo"] if editando else "Destaque",
+                                 label="Estilo do Head").classes("w-full")
+        corpo_texto = ui.textarea("Corpo", value=item["corpo_texto"] if editando else "").classes("w-full")
+        ui.label("Textos longos aparecem resumidos no carrossel, com botão \"Ler mais\" abrindo o texto completo.").style(
+            f"color:{TEXT_MUTED}; font-size:11px; margin-top:-6px;"
+        )
+
+        preview = ui.image(imagem_atual["data_uri"] or "").style(
+            "width:100%; max-height:160px; object-fit:cover; border-radius:8px; "
+            f"background:{BORDER}; display:{'block' if imagem_atual['data_uri'] else 'none'};"
+        )
+
+        def ao_enviar_imagem(e: events.UploadEventArguments):
+            try:
+                from PIL import Image
+                img = Image.open(e.content).convert("RGB")
+                img.thumbnail(IMG_MAX_PX)
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=82, optimize=True)
+                data_uri = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+                imagem_atual["data_uri"] = data_uri
+                preview.set_source(data_uri)
+                preview.style("display:block;")
+                ui.notify("Imagem carregada.", type="positive")
+            except Exception as ex:
+                ui.notify(f"Não foi possível usar essa imagem: {ex}", type="negative")
+
+        ui.upload(on_upload=ao_enviar_imagem, auto_upload=True, max_file_size=8_000_000).props(
+            'accept=".jpg,.jpeg,.png" label="Imagem de fundo"'
+        ).classes("w-full")
+        imagem_posicao = ui.select(["center", "top", "bottom", "left", "right"],
+                                    value=item["imagem_posicao"] if editando else "center",
+                                    label="Posicionamento da imagem").classes("w-full")
+
+        botao_label = ui.input("Texto do botão", value=item["botao_label"] if editando else "Saiba mais").classes("w-full")
+        botao_cta = ui.select(CTAS, value=item["botao_cta"] if editando else "abrir_modal",
+                               label="Ação do botão (CTA)").classes("w-full")
+        status = ui.select(["ativo", "inativo"], value=item["status"] if editando else "ativo",
+                            label="Status").classes("w-full")
+        erro = ui.label("").style(f"color:{DANGER}; font-size:12.5px;")
+
+        def salvar():
+            if not titulo.value or not head_texto.value:
+                erro.set_text("Título e Head são obrigatórios.")
+                return
+            campos = dict(
+                titulo=titulo.value, head_texto=head_texto.value, head_estilo=head_estilo.value,
+                corpo_texto=corpo_texto.value or "", imagem_url=imagem_atual["data_uri"],
+                imagem_posicao=imagem_posicao.value, botao_label=botao_label.value or "Saiba mais",
+                botao_cta=botao_cta.value, status=status.value,
+            )
+            if editando:
+                newsletters.atualizar(item["id"], **campos)
+                ui.notify("Newsletter atualizada.", type="positive")
+            else:
+                newsletters.criar(**campos)
+                ui.notify("Newsletter criada.", type="positive")
+            on_done()
+
+        ui.button("Salvar", on_click=salvar).props("unelevated").style(
+            f"background:{TEAL}; color:white; font-weight:700; width:fit-content;"
+        )

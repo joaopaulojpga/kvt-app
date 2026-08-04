@@ -5,7 +5,7 @@ from theme import NAVY, TEAL, TEAL_DARK, BG, TEXT, TEXT_MUTED, SIDEBAR_W, SIDEBA
 from logo_data import LOGO_KALANI_DATA_URI
 import auth
 
-MENU_BASE = [("Meus Créditos", "/creditos", "home"), ("Agenda de Turmas", "/agenda", "event")]
+MENU_BASE = [("Home", "/creditos", "home"), ("Agenda de Turmas", "/agenda", "event")]
 MENU_INSTRUTOR = [("Lista de Presença", "/presenca", "fact_check")]
 MENU_GESTOR = [("Dashboard", "/dashboard", "insights"), ("Configurações", "/configuracoes", "settings")]
 ITEM_CADASTRO = ("Meu Cadastro", "/perfil", "person")

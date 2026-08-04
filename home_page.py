@@ -3,6 +3,7 @@ from nicegui import ui, app
 from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, APP_NAME
 from logo_data import LOGO_KALANI_DATA_URI
 import auth
+import carousel
 
 
 def render():
@@ -11,16 +12,7 @@ def render():
             ui.image(LOGO_KALANI_DATA_URI).style("width:40px; height:40px; border-radius:50%;")
             ui.label(APP_NAME).style(f"color:{NAVY}; font-size:26px; font-weight:800;")
 
-        with ui.column().style(
-            f"background:{NAVY}; border-radius:16px; padding:32px; gap:8px;"
-        ):
-            ui.label("Como funcionam nossas aulas").style(
-                "color:white; font-size:22px; font-weight:800;"
-            )
-            ui.label(
-                "Turmas de terça a domingo, reserva por crédito, remos e coletes inclusos. "
-                "Compre seus créditos, confira a agenda do mês e garanta sua vaga."
-            ).style("color:#CFE3EC; font-size:14px; max-width:560px;")
+        carousel.render_carousel()
 
         with ui.row().style("gap:16px; width:100%;"):
             for titulo, desc in [
@@ -41,16 +33,17 @@ def render():
                 "\u2014 vagas de 12, expansíveis até 18."
             ).style(f"color:{TEXT}; font-size:13px;")
 
-        with ui.tabs().classes("w-full") as tabs:
-            tab_login = ui.tab("Entrar")
-            tab_cadastro = ui.tab("Cadastrar")
-        with ui.tab_panels(tabs, value=tab_login).classes("w-full").style(
-            "background:transparent;"
-        ):
-            with ui.tab_panel(tab_login):
-                _form_login()
-            with ui.tab_panel(tab_cadastro):
-                _form_cadastro()
+        with ui.column().style("width:100%;").props('id="cadastro-section"'):
+            with ui.tabs().classes("w-full") as tabs:
+                tab_login = ui.tab("Entrar")
+                tab_cadastro = ui.tab("Cadastrar")
+            with ui.tab_panels(tabs, value=tab_login).classes("w-full").style(
+                "background:transparent;"
+            ):
+                with ui.tab_panel(tab_login):
+                    _form_login()
+                with ui.tab_panel(tab_cadastro):
+                    _form_cadastro()
 
 
 def _form_login():

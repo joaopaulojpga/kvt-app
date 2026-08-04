@@ -114,6 +114,53 @@ testar("presenca_page", "render", user_instrutor)
 testar("dashboard_page", "render", user_gestor)
 testar("configuracoes_page", "render", user_gestor)
 
+
+# Testa também a aba "Newsletter" (não é a aba padrão, então o teste acima não passa por ela)
+def testar_newsletter_tab():
+    try:
+        import configuracoes_page as cp
+        cp._secao_newsletter()
+        cp._form_newsletter(None, lambda: None)
+        print("OK   configuracoes_page._secao_newsletter() + _form_newsletter() (criação)")
+        # também testa o caminho de edição, com um item de exemplo
+        item_exemplo = {
+            "id": 1, "titulo": "T", "head_texto": "H", "head_estilo": "Destaque",
+            "corpo_texto": "C", "imagem_url": None, "imagem_posicao": "center",
+            "botao_label": "L", "botao_cta": "abrir_modal", "status": "ativo", "ordem": 0,
+        }
+        cp._form_newsletter(item_exemplo, lambda: None)
+        print("OK   configuracoes_page._form_newsletter() (edição)")
+    except Exception as e:
+        erros.append(("configuracoes_page.newsletter", e))
+        print(f"FALHOU configuracoes_page (aba Newsletter) -> {type(e).__name__}: {e}")
+
+
+testar_newsletter_tab()
+
+
+def testar_carousel_com_dados():
+    try:
+        import newsletters as nl
+        nl.criar(
+            titulo="Teste", head_texto="Venha remar", head_estilo="Título grande",
+            corpo_texto="Corpo bem longo " * 20, imagem_url=None, imagem_posicao="center",
+            botao_label="Ver mais", botao_cta="abrir_modal", status="ativo",
+        )
+        nl.criar(
+            titulo="Teste2", head_texto="Onde treinamos", head_estilo="Chamada",
+            corpo_texto="Curto.", imagem_url="data:image/png;base64,AAAA",
+            imagem_posicao="top", botao_label="Mapa", botao_cta="abrir_mapa", status="ativo",
+        )
+        import carousel
+        carousel.render_carousel()
+        print("OK   carousel.render_carousel() com newsletters ativas (com e sem imagem, 2 slides p/ testar navegação)")
+    except Exception as e:
+        erros.append(("carousel", e))
+        print(f"FALHOU carousel.render_carousel() -> {type(e).__name__}: {e}")
+
+
+testar_carousel_com_dados()
+
 # layout.shell também precisa funcionar (é usado por toda página autenticada)
 try:
     from layout import shell

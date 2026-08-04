@@ -97,6 +97,21 @@ CREATE TABLE IF NOT EXISTS payouts (
     criado_em           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS newsletters (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo          TEXT NOT NULL,
+    head_texto      TEXT NOT NULL,
+    head_estilo     TEXT NOT NULL DEFAULT 'Destaque',
+    corpo_texto     TEXT NOT NULL DEFAULT '',
+    imagem_url      TEXT,
+    imagem_posicao  TEXT NOT NULL DEFAULT 'center',
+    botao_label     TEXT NOT NULL DEFAULT 'Saiba mais',
+    botao_cta       TEXT NOT NULL DEFAULT 'abrir_modal',
+    status          TEXT NOT NULL DEFAULT 'ativo',
+    ordem           INTEGER NOT NULL DEFAULT 0,
+    criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS params (
     chave   TEXT PRIMARY KEY,
     valor   TEXT NOT NULL
@@ -187,6 +202,21 @@ CREATE TABLE IF NOT EXISTS payouts (
     remadores_atribuidos INTEGER NOT NULL,
     valor_centavos      INTEGER NOT NULL,
     criado_em           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS newsletters (
+    id              SERIAL PRIMARY KEY,
+    titulo          TEXT NOT NULL,
+    head_texto      TEXT NOT NULL,
+    head_estilo     TEXT NOT NULL DEFAULT 'Destaque',
+    corpo_texto     TEXT NOT NULL DEFAULT '',
+    imagem_url      TEXT,
+    imagem_posicao  TEXT NOT NULL DEFAULT 'center',
+    botao_label     TEXT NOT NULL DEFAULT 'Saiba mais',
+    botao_cta       TEXT NOT NULL DEFAULT 'abrir_modal',
+    status          TEXT NOT NULL DEFAULT 'ativo',
+    ordem           INTEGER NOT NULL DEFAULT 0,
+    criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS params (

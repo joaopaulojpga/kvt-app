@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from nicegui import ui, app
-from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED
+from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, APP_NAME
+from logo_data import LOGO_KALANI_DATA_URI
 import auth
 
 
 def render():
     with ui.column().style("max-width:900px; margin:0 auto; padding:48px 24px; gap:24px;"):
-        ui.label("\U0001F6F6 Canoa Clube").style(f"color:{NAVY}; font-size:26px; font-weight:800;")
+        with ui.row().style("align-items:center; gap:10px;"):
+            ui.image(LOGO_KALANI_DATA_URI).style("width:40px; height:40px; border-radius:50%;")
+            ui.label(APP_NAME).style(f"color:{NAVY}; font-size:26px; font-weight:800;")
 
         with ui.column().style(
             f"background:{NAVY}; border-radius:16px; padding:32px; gap:8px;"

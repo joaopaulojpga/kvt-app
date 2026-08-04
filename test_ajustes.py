@@ -81,3 +81,20 @@ approx(depois["nome"], "João Souza Jr.", "nome deveria ter sido atualizado norm
 print("OK — e-mail é protegido contra alteração mesmo se passado por engano.")
 
 print("\nTodos os testes dos ajustes passaram.")
+
+# ---- 4.1: instrutor pode alterar a turma (inclusive o instrutor responsável) ----
+turma_edit_id = turma["id"]  # reaproveita a turma já criada acima (15 vagas, instrutor2=ana)
+turmas_mod.atualizar_turma(turma_edit_id, HOJE.isoformat(), "07:30", "passeio",
+                            instrutor_resp_id=ana, instrutor2_id=None)
+with db() as conn:
+    t_edit = conn.execute("SELECT * FROM classes WHERE id=?", (turma_edit_id,)).fetchone()
+approx(t_edit["instrutor_resp_id"], ana, "instrutor responsável deveria ter mudado para Ana")
+approx(t_edit["horario"], "07:30")
+approx(t_edit["tipo"], "passeio")
+print("OK — instrutor responsável e demais campos da turma podem ser editados via atualizar_turma.")
+
+# editar turma exige instrutor responsável
+espera_erro(turmas_mod.atualizar_turma, turma_edit_id, HOJE.isoformat(), "07:30", "passeio", None)
+print("OK — editar turma sem instrutor responsável é bloqueado.")
+
+print("\nTodos os testes dos ajustes (rodada 2) passaram.")

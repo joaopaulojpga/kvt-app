@@ -5,7 +5,7 @@ import calendar
 from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, DANGER, WARN
 from ui_helpers import page_title, badge
 from db import db
-import reservations, attendance, classes as turmas_mod
+import reservations, attendance, classes as turmas_mod, email as email_mod
 from reservations import ReservaError
 from classes import TurmaError
 
@@ -53,6 +53,42 @@ def render(user, hoje=None):
         _form_criar_turma(user, hoje, recarregar)
 
     recarregar()
+
+
+def _form_editar_turma(t, on_done):
+    instrutores = turmas_mod.listar_instrutores()
+    nomes = [i["nome"] for i in instrutores]
+    ids_por_nome = {i["nome"]: i["id"] for i in instrutores}
+    nome_resp_atual = t["instrutor_nome"] if t["instrutor_nome"] in nomes else (nomes[0] if nomes else None)
+    nome_extra_atual = t["instrutor2_nome"] if t["instrutor2_nome"] in nomes else "(nenhum)"
+
+    with ui.column().classes("canoa-card").style(f"width:100%; border-color:{TEAL}; gap:10px; margin-top:4px;"):
+        ui.label("Editar turma").style(f"color:{TEAL_DARK}; font-weight:700; font-size:13.5px;")
+        data_edit = ui.input("Data (AAAA-MM-DD)", value=str(t["data"]))
+        horario_edit = ui.input("Horário (HH:MM)", value=t["horario"])
+        tipo_edit = ui.select(["treino", "passeio"], value=t["tipo"], label="Tipo")
+        resp_edit = ui.select(nomes, value=nome_resp_atual, label="Instrutor responsável *")
+        extra_edit = ui.select(
+            ["(nenhum)"] + nomes, value=nome_extra_atual,
+            label="Instrutor extra (opcional)",
+        )
+        erro = ui.label("").style(f"color:{DANGER}; font-size:13px;")
+
+        def salvar_edicao():
+            try:
+                turmas_mod.atualizar_turma(
+                    t["id"], data_edit.value, horario_edit.value, tipo_edit.value,
+                    instrutor_resp_id=ids_por_nome.get(resp_edit.value),
+                    instrutor2_id=ids_por_nome.get(extra_edit.value) if extra_edit.value != "(nenhum)" else None,
+                )
+                ui.notify("Turma atualizada.", type="positive")
+                on_done()
+            except TurmaError as e:
+                erro.set_text(str(e))
+
+        ui.button("Salvar alterações", on_click=salvar_edicao).props("unelevated").style(
+            f"background:{TEAL}; color:white; font-weight:700; width:fit-content;"
+        )
 
 
 def _form_criar_turma(user, hoje, on_done):
@@ -135,6 +171,15 @@ def _linha_turma(t, user, hoje, on_done):
                                     "Turma no limite de vagas. Solicitação enviada para aprovação "
                                     "do instrutor responsável.", type="warning"
                                 )
+                                with db() as conn:
+                                    instrutor = conn.execute(
+                                        "SELECT nome, email FROM users WHERE id = ?", (t["instrutor_resp_id"],)
+                                    ).fetchone()
+                                if instrutor:
+                                    email_mod.enviar_notificacao_expansao(
+                                        instrutor["email"], instrutor["nome"], user["nome"],
+                                        t["data"], t["horario"],
+                                    )
                             on_done()
                         except ReservaError as e:
                             msg.set_text(str(e))
@@ -152,6 +197,17 @@ def _linha_turma(t, user, hoje, on_done):
 
                     ui.button("Cancelar turma", on_click=cancelar).props("outline").style(
                         f"color:{DANGER}; font-weight:700;"
+                    )
+
+                    edit_container = ui.column().style("width:100%;")
+
+                    def abrir_edicao():
+                        edit_container.clear()
+                        with edit_container:
+                            _form_editar_turma(t, on_done)
+
+                    ui.button("Editar turma", on_click=abrir_edicao).props("outline").style(
+                        f"color:{TEAL_DARK}; font-weight:700;"
                     )
 
             if user["role"] == "instrutor" and t["status"] == "agendada":

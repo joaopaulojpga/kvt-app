@@ -1,16 +1,35 @@
 # -*- coding: utf-8 -*-
 import os
+from fastapi import Request
 from nicegui import ui, app
 
 from db import init_db
 from seed import seed_demo
 from theme import GLOBAL_CSS
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page
+import payments
 from layout import shell
 
 init_db()
 if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
     seed_demo()
+
+
+@app.post("/webhook/mercadopago")
+async def webhook_mercadopago(request: Request):
+    """Recebe a confirmação de pagamento do Mercado Pago (fonte confiável de verdade)."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    query = dict(request.query_params)
+    try:
+        payments.processar_webhook(body, query)
+    except Exception as e:
+        # Nunca deixamos uma falha aqui derrubar a resposta ao Mercado Pago —
+        # ele reenvia a notificação depois se não receber 200 OK.
+        print(f"[webhook mercadopago] erro ao processar: {e}")
+    return {"status": "ok"}
 
 
 def _logged_in():
@@ -103,7 +122,7 @@ if __name__ in {"__main__", "__mp_main__"}:
     ui.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8080)),
-        title="Canoa Clube",
+        title="Kalani Vaa Team",
         storage_secret=os.environ.get("NICEGUI_STORAGE_SECRET", "troque-esta-chave-em-producao"),
         reload=False,
     )

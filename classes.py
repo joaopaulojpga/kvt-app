@@ -34,6 +34,28 @@ def criar_turma(data, horario, tipo, instrutor_resp_id, instrutor2_id=None, vaga
         )
 
 
+def atualizar_turma(class_id, data, horario, tipo, instrutor_resp_id, instrutor2_id=None):
+    """
+    Edita data/horário/tipo/instrutor(es) responsável(is) de uma turma
+    que ainda não foi confirmada/baixada nem suspensa/cancelada.
+    """
+    if not instrutor_resp_id:
+        raise TurmaError("Instrutor responsável é obrigatório.")
+    if instrutor2_id == instrutor_resp_id:
+        instrutor2_id = None
+    with db() as conn:
+        turma = conn.execute("SELECT * FROM classes WHERE id = ?", (class_id,)).fetchone()
+        if turma is None:
+            raise TurmaError("Turma não encontrada.")
+        if turma["status"] != "agendada":
+            raise TurmaError("Só é possível editar turmas ainda não confirmadas/baixadas.")
+        conn.execute(
+            "UPDATE classes SET data = ?, horario = ?, tipo = ?, instrutor_resp_id = ?, "
+            "instrutor2_id = ? WHERE id = ?",
+            (data, horario, tipo, instrutor_resp_id, instrutor2_id, class_id),
+        )
+
+
 def atualizar_vagas_turma(class_id, novas_vagas, instrutor2_id=None):
     """
     Edita a quantidade de vagas ofertadas numa turma futura (para mais

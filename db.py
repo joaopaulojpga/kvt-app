@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS classes (
     tipo                TEXT NOT NULL DEFAULT 'treino',
     vagas_base          INTEGER NOT NULL DEFAULT 12,
     vagas_max           INTEGER NOT NULL DEFAULT 18,
-    instrutor_resp_id   INTEGER NOT NULL REFERENCES users(id),
+    instrutor_resp_id   INTEGER REFERENCES users(id),
     instrutor2_id       INTEGER REFERENCES users(id),
     status              TEXT NOT NULL DEFAULT 'agendada',
     criado_em           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS classes (
     tipo                TEXT NOT NULL DEFAULT 'treino',
     vagas_base          INTEGER NOT NULL DEFAULT 12,
     vagas_max           INTEGER NOT NULL DEFAULT 18,
-    instrutor_resp_id   INTEGER NOT NULL REFERENCES users(id),
+    instrutor_resp_id   INTEGER REFERENCES users(id),
     instrutor2_id       INTEGER REFERENCES users(id),
     status              TEXT NOT NULL DEFAULT 'agendada',
     criado_em           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -320,10 +320,15 @@ def _migrar_colunas_novas():
     with db() as conn:
         if IS_POSTGRES:
             conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS data_nascimento DATE")
+            conn.execute("ALTER TABLE classes ALTER COLUMN instrutor_resp_id DROP NOT NULL")
         else:
             colunas = [r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
             if "data_nascimento" not in colunas:
                 conn.execute("ALTER TABLE users ADD COLUMN data_nascimento DATE")
+            # SQLite não permite remover NOT NULL de uma coluna existente sem recriar a
+            # tabela — como o SQLite aqui é só para desenvolvimento/testes locais (banco
+            # descartável), isso só afeta quem já tinha um canoa.db local antigo; basta
+            # apagar o arquivo (ele é recriado do zero, já com o schema novo).
 
 
 def get_param(chave, default=None, cast=str):

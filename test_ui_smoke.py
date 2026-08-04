@@ -161,6 +161,32 @@ def testar_carousel_com_dados():
 
 testar_carousel_com_dados()
 
+
+def testar_relatorio_aulas():
+    try:
+        import configuracoes_page as cp
+        cp._secao_relatorio_alunos()  # já chama _secao_relatorio_aulas() internamente
+        print("OK   configuracoes_page._secao_relatorio_alunos() (inclui relatório de aulas + seletor de mês)")
+    except Exception as e:
+        erros.append(("configuracoes_page.relatorios", e))
+        print(f"FALHOU configuracoes_page (aba Relatórios) -> {type(e).__name__}: {e}")
+
+
+testar_relatorio_aulas()
+
+
+def testar_escala():
+    try:
+        import configuracoes_page as cp
+        cp._secao_escala()
+        print("OK   configuracoes_page._secao_escala()")
+    except Exception as e:
+        erros.append(("configuracoes_page.escala", e))
+        print(f"FALHOU configuracoes_page (aba Escala) -> {type(e).__name__}: {e}")
+
+
+testar_escala()
+
 # layout.shell também precisa funcionar (é usado por toda página autenticada)
 try:
     from layout import shell

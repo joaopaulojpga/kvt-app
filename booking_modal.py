@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from nicegui import ui
 from datetime import date as date_cls
-from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED
+from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED
 from calendar_ics import gerar_ics
 
 DIAS_PT = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
@@ -25,7 +25,7 @@ def mostrar_confirmacao(data_str, horario_str):
         )
 
         with ui.column().style(
-            "background:#EAF6F4; border-radius:12px; padding:14px 16px; gap:4px; width:100%;"
+            f"background:{TEAL_LIGHT}; border-radius:12px; padding:14px 16px; gap:4px; width:100%;"
         ):
             ui.label(f"\U0001F4C5 {data_fmt}").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")
             ui.label(f"\U0001F550 {horario_str}").style(f"color:{TEAL_DARK}; font-weight:700; font-size:14px;")

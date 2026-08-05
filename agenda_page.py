@@ -2,8 +2,8 @@
 from nicegui import ui
 from datetime import date
 import calendar
-from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, DANGER, WARN
-from ui_helpers import page_title, badge
+from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, DANGER, WARN
+from ui_helpers import badge
 from db import db
 import reservations, attendance, classes as turmas_mod, mailer as email_mod, credits
 import booking_modal
@@ -56,7 +56,17 @@ def _turmas_do_mes(ano, mes):
 
 def render(user, hoje=None):
     hoje = hoje or date.today()
-    page_title("Agenda de Turmas")
+    with ui.row().style("width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;"):
+        ui.label("Agenda de Turmas").classes("kv-titulo")
+        if user["role"] == "aluno":
+            saldo = credits.saldo_disponivel(user["id"])
+            with ui.column().style(
+                "background:white; border:1px solid #C9D3BE; border-radius:12px; "
+                "padding:4px 18px; align-items:center; gap:0;"
+            ):
+                ui.label("Créditos").style(f"color:{TEXT_MUTED}; font-size:10px; font-weight:700;")
+                ui.label(str(saldo)).style(f"color:{NAVY}; font-size:22px; font-weight:800; line-height:1.1;")
+                ui.label("remadas").style(f"color:{TEXT_MUTED}; font-size:10px;")
 
     estado = {"modo": "proximas", "ano": hoje.year, "mes": hoje.month}
     corpo = ui.column().style("width:100%; gap:12px;")
@@ -241,16 +251,16 @@ def _card_turma(t, user, hoje, on_done):
     ja_reservado = minha_reserva is not None
 
     with ui.column().classes("canoa-card").style("width:100%; gap:10px; padding:16px;"):
-        with ui.row().style("justify-content:space-between; align-items:flex-start; width:100%;"):
-            with ui.row().style("gap:8px; align-items:center;"):
-                ui.icon("event", size="22px").style(f"color:{TEAL};")
-                with ui.column().style("gap:0;"):
+        with ui.row().style("justify-content:space-between; align-items:flex-start; width:100%; flex-wrap:nowrap;"):
+            with ui.row().style("gap:8px; align-items:center; flex-wrap:nowrap; min-width:0;"):
+                ui.icon("event", size="22px").style(f"color:{TEAL}; flex-shrink:0;")
+                with ui.column().style("gap:0; min-width:0;"):
                     ui.label(data_turma.strftime("%d/%m")).style(
                         f"color:{NAVY}; font-size:20px; font-weight:800; line-height:1.1;"
                     )
                     ui.label(dia_semana).style(f"color:{TEXT_MUTED}; font-size:12px;")
             with ui.column().style(
-                f"background:#EAF6F4; border-radius:50%; width:52px; height:52px; "
+                f"background:{TEAL_LIGHT}; border-radius:50%; width:52px; height:52px; min-width:52px; "
                 "align-items:center; justify-content:center; gap:0; flex-shrink:0;"
             ):
                 ui.label(f"{t['confirmados']}/{limite_exibido}").style(
@@ -259,14 +269,14 @@ def _card_turma(t, user, hoje, on_done):
                 ui.label("vagas").style(f"color:{TEAL_DARK}; font-size:8.5px;")
 
         with ui.column().style("gap:3px; width:100%;"):
-            with ui.row().style("gap:6px; align-items:center;"):
-                ui.icon("schedule", size="14px").style(f"color:{TEXT_MUTED};")
+            with ui.row().style("gap:6px; align-items:center; flex-wrap:nowrap;"):
+                ui.icon("schedule", size="14px").style(f"color:{TEXT_MUTED}; flex-shrink:0;")
                 ui.label(f"às {t['horario']}").style(f"color:{TEXT}; font-size:12.5px;")
-            with ui.row().style("gap:6px; align-items:center;"):
-                ui.icon("sports", size="14px").style(f"color:{TEXT_MUTED};")
+            with ui.row().style("gap:6px; align-items:center; flex-wrap:nowrap;"):
+                ui.icon("sports", size="14px").style(f"color:{TEXT_MUTED}; flex-shrink:0;")
                 ui.label(f"Instrutor: {t['instrutor_nome']}").style(f"color:{TEXT}; font-size:12.5px;")
-            with ui.row().style("gap:6px; align-items:center;"):
-                ui.icon("place", size="14px").style(f"color:{TEXT_MUTED};")
+            with ui.row().style("gap:6px; align-items:center; flex-wrap:nowrap;"):
+                ui.icon("place", size="14px").style(f"color:{TEXT_MUTED}; flex-shrink:0;")
                 ui.label(LOCAL_CLUBE).style(f"color:{TEXT}; font-size:12.5px;")
 
         if t["status"] != "agendada":
@@ -311,7 +321,7 @@ def _card_turma(t, user, hoje, on_done):
                 msg.set_text(str(e))
 
         if t["status"] == "agendada" and not ja_reservado:
-            ui.button("Reservar", icon="chevron_right", on_click=reservar).props(
+            ui.button("Reservar", on_click=reservar).props(
                 "unelevated"
             ).classes("w-full").style(f"background:{TEAL}; color:white; font-weight:700;")
         elif t["status"] == "agendada" and ja_reservado and minha_reserva["status"] != "pendente_aprovacao":

@@ -62,7 +62,7 @@ def _sidebar(active_path, user):
         # Cabeçalho: logo + nome (se expandido) e botão de recolher, lado a lado
         with ui.row().style(
             f"align-items:center; gap:8px; padding:0 {'0' if collapsed else '16'}px 16px "
-            f"{'0' if collapsed else '16'}px; "
+            f"{'0' if collapsed else '16'}px; width:100%; "
             f"justify-content:{'center' if collapsed else 'space-between'};"
         ):
             with ui.row().style("align-items:center; gap:8px;"):
@@ -77,19 +77,19 @@ def _sidebar(active_path, user):
                 ).style("color:#9FBE86;").tooltip("Recolher")
 
         if collapsed:
-            with ui.row().style("justify-content:center; padding-bottom:8px;"):
+            with ui.row().style("justify-content:center; padding-bottom:8px; width:100%;"):
                 ui.button(icon="menu", on_click=alternar_sidebar).props(
                     "flat dense round"
                 ).style("color:#9FBE86;").tooltip("Expandir")
         ui.separator().style("background:#243318; opacity:0.5;")
 
         # Itens de menu — ícone sempre, texto só quando expandido
-        with ui.column().style("gap:0; margin-top:8px;"):
+        with ui.column().style("gap:0; margin-top:8px; width:100%;"):
             for label, path, icone in _menu_para(user):
                 ativo = path == active_path
                 item = ui.row().style(
                     f"padding:12px {'0' if collapsed else '20'}px; cursor:pointer; align-items:center; "
-                    f"justify-content:{'center' if collapsed else 'flex-start'}; gap:12px; "
+                    f"justify-content:{'center' if collapsed else 'flex-start'}; gap:12px; width:100%; "
                     f"background:{TEAL_DARK if ativo else 'transparent'};"
                 )
                 with item:
@@ -111,7 +111,7 @@ def _sidebar(active_path, user):
         for label, icone, acao in [("Ajuda", "help_outline", _abrir_ajuda), ("Sair", "logout", _logout)]:
             item = ui.row().style(
                 f"padding:12px {'0' if collapsed else '20'}px; cursor:pointer; align-items:center; "
-                f"justify-content:{'center' if collapsed else 'flex-start'}; gap:12px; margin-top:4px;"
+                f"justify-content:{'center' if collapsed else 'flex-start'}; gap:12px; margin-top:4px; width:100%;"
             )
             with item:
                 ui.icon(icone).style("color:#9FBE86; font-size:19px;")

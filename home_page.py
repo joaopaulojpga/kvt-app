@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from nicegui import ui, app
-from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED, APP_NAME
+from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, DANGER, APP_NAME
 from logo_data import LOGO_KALANI_DATA_URI
 import auth
 import carousel
@@ -38,7 +38,7 @@ def render():
 
 def _grade_horarios_chips():
     with ui.column().style(
-        "background:#EAF6F4; border-radius:12px; padding:20px 22px; gap:10px; width:100%;"
+        f"background:{TEAL_LIGHT}; border-radius:12px; padding:20px 22px; gap:10px; width:100%;"
     ):
         ui.label("Agenda de Remadas").style(
             f"color:{TEAL_DARK}; font-weight:800; font-size:14px; "
@@ -68,7 +68,7 @@ def _form_login():
     with ui.column().classes("canoa-card w-full").style("max-width:480px; width:100%; gap:12px;"):
         email = ui.input("E-mail").classes("w-full")
         senha = ui.input("Senha", password=True).classes("w-full")
-        erro = ui.label("").style("color:#D9534F; font-size:13px;")
+        erro = ui.label("").style(f"color:{DANGER}; font-size:13px;")
 
         def entrar():
             user = auth.autenticar(email.value or "", senha.value or "")
@@ -92,7 +92,7 @@ def _form_cadastro():
         cpf = ui.input("CPF *").classes("w-full")
         celular = ui.input("Celular / WhatsApp *").classes("w-full")
         instagram = ui.input("Instagram (opcional)").classes("w-full")
-        erro = ui.label("").style("color:#D9534F; font-size:13px;")
+        erro = ui.label("").style(f"color:{DANGER}; font-size:13px;")
 
         def cadastrar():
             campos = [nome.value, sexo.value, email_c.value, senha_c.value, cpf.value, celular.value]

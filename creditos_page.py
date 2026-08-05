@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from nicegui import ui
 from datetime import date
-from theme import NAVY, TEAL, TEAL_DARK, TEXT, TEXT_MUTED
+from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, WARN
 from ui_helpers import page_title, badge, section_title
 from db import db
 import credits
@@ -47,18 +47,18 @@ def _card_proxima_remada(user):
         with ui.column().style(
             f"background:{NAVY}; border-radius:14px; padding:24px; gap:6px; width:100%;"
         ):
-            ui.label("Sua próxima remada").style("color:#BFD6E2; font-size:13px; font-weight:700;")
+            ui.label("Sua próxima remada").style(f"color:{TEAL_LIGHT}; font-size:13px; font-weight:700;")
             ui.label(f"\U0001F4C5 {data_fmt}").style("color:white; font-size:16px; font-weight:700;")
             ui.label(f"\U0001F550 {prox['horario']}  \u00b7  \U0001F4CD Lagoa de Cima").style(
-                "color:#CFE3EC; font-size:13.5px;"
+                f"color:{TEAL_LIGHT}; font-size:13.5px;"
             )
-            ui.label("Estamos te esperando! \U0001F33A").style("color:#9FC1D3; font-size:12.5px; margin-top:2px;")
+            ui.label("Estamos te esperando! \U0001F33A").style("color:#9FBE86; font-size:12.5px; margin-top:2px;")
             ui.button("Ver detalhes", on_click=lambda: ui.navigate.to("/agenda")).props(
                 "outline"
             ).style("color:white; border-color:white; font-weight:700; margin-top:8px; width:fit-content;")
     else:
         with ui.column().style(
-            "background:#EAF6F4; border:1px solid #62A832; border-radius:14px; "
+            f"background:{TEAL_LIGHT}; border:1px solid {TEAL}; border-radius:14px; "
             "padding:24px; gap:6px; width:100%;"
         ):
             ui.label("Você ainda não possui nenhuma remada agendada.").style(
@@ -86,11 +86,14 @@ def _card_remadas(user):
             )
         if saldo == 0:
             ui.label("Você não tem remadas disponíveis no momento.").style(
-                "color:#B5651D; font-size:12.5px; margin-top:2px;"
+                f"color:{WARN}; font-size:12.5px; margin-top:2px; font-weight:600;"
             )
         ui.button("Comprar remadas", on_click=lambda: ui.navigate.to("/comprar")).props(
             "unelevated"
         ).style(f"background:{TEAL}; color:white; font-weight:700; margin-top:6px; width:fit-content;")
+
+
+HISTORICO_LIMITE_INICIAL = 5
 
 
 def _historico(user):
@@ -115,16 +118,37 @@ def _historico(user):
         "cancelada": ("Cancelada", "muted"),
         "pendente_aprovacao": ("Aguardando aprovação de vaga", "warn"),
     }
-    with ui.column().classes("canoa-card").style("gap:4px; width:100%;"):
-        for r in rows:
-            texto, kind = label_kind.get(r["status"], (r["status"], "muted"))
-            if r["status_turma"] in ("suspensa_clima", "suspensa_quorum"):
-                texto, kind = "Suspensa \u2014 remada devolvida", "muted"
-            with ui.row().style(
-                "justify-content:space-between; align-items:center; padding:8px 0; "
-                "border-bottom:1px solid #EEF1F3; width:100%;"
-            ):
-                ui.label(f"{r['data']} \u00b7 {r['horario']} \u00b7 {r['tipo'].capitalize()}").style(
-                    f"color:{TEXT}; font-size:13px;"
-                )
-                badge(texto, kind)
+
+    estado = {"expandido": len(rows) <= HISTORICO_LIMITE_INICIAL}
+    container = ui.column().style("width:100%; gap:0;")
+
+    def desenhar():
+        container.clear()
+        visiveis = rows if estado["expandido"] else rows[:HISTORICO_LIMITE_INICIAL]
+        with container:
+            with ui.column().classes("canoa-card").style("gap:4px; width:100%;"):
+                for r in visiveis:
+                    texto, kind = label_kind.get(r["status"], (r["status"], "muted"))
+                    if r["status_turma"] in ("suspensa_clima", "suspensa_quorum"):
+                        texto, kind = "Suspensa \u2014 remada devolvida", "muted"
+                    with ui.row().style(
+                        "justify-content:space-between; align-items:center; padding:8px 0; "
+                        "border-bottom:1px solid #EEF1F3; width:100%;"
+                    ):
+                        ui.label(f"{r['data']} \u00b7 {r['horario']} \u00b7 {r['tipo'].capitalize()}").style(
+                            f"color:{TEXT}; font-size:13px;"
+                        )
+                        badge(texto, kind)
+
+            if len(rows) > HISTORICO_LIMITE_INICIAL:
+                def alternar():
+                    estado["expandido"] = not estado["expandido"]
+                    desenhar()
+
+                texto_link = "Ver menos" if estado["expandido"] else f"Ver mais ({len(rows) - HISTORICO_LIMITE_INICIAL})"
+                ui.label(texto_link).style(
+                    f"color:{TEAL_DARK}; font-size:12.5px; font-weight:700; text-decoration:underline; "
+                    "cursor:pointer; margin-top:6px;"
+                ).on("click", alternar)
+
+    desenhar()

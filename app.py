@@ -5,7 +5,7 @@ from nicegui import ui, app
 
 from db import init_db
 from seed import seed_demo
-from theme import GLOBAL_CSS
+from theme import GLOBAL_CSS, TEAL, NAVY, TEAL_DARK, OK, DANGER, WARN
 from pwa import PWA_HEAD_HTML, FAVICON_DATA_URI
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
 import payments
@@ -16,6 +16,12 @@ init_db()
 if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
     seed_demo()
 newsletters.seed_newsletters_iniciais()
+
+# Paleta de marca do Quasar (afeta TODOS os componentes nativos — foco de
+# input, indicador de aba ativa, checkbox, switch, spinner, notify etc.).
+# Sem isso, esses elementos usam o azul padrão do Quasar, destoando da
+# identidade verde do clube em qualquer tela com formulário.
+ui.colors(primary=TEAL, secondary=NAVY, accent=TEAL_DARK, positive=OK, negative=DANGER, warning=WARN)
 
 
 @app.post("/webhook/mercadopago")

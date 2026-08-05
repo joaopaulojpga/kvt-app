@@ -112,7 +112,10 @@ testar("agenda_page", "render", user_instrutor)
 testar("perfil_page", "render", user_instrutor)
 testar("presenca_page", "render", user_instrutor)
 testar("dashboard_page", "render", user_gestor)
-testar("configuracoes_page", "render", user_gestor)
+testar("configuracoes_page", "render_alunos", user_gestor)
+testar("configuracoes_page", "render_relatorios", user_gestor)
+testar("configuracoes_page", "render_newsletter", user_gestor)
+testar("configuracoes_page", "render_escala", user_gestor)
 testar("historico_creditos_page", "render", user_instrutor)
 testar("movimentacoes_page", "render", user_gestor)
 
@@ -211,4 +214,4 @@ if erros:
         print(f" - {nome}: {e}")
     sys.exit(1)
 else:
-    print("Todas as 9 telas + layout carregaram sem erro com os dados de exemplo.")
+    print("Todas as 13 telas + layout carregaram sem erro com os dados de exemplo.")

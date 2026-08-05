@@ -46,7 +46,13 @@ def _menu_para(user):
     itens.append(("Agenda de Turmas", "/agenda", "event", None))
     if user["role"] == "gestor":
         itens.append(("Dashboard", "/dashboard", "insights", None))
-        itens.append(("Configurações", "/configuracoes", "settings", None))
+        filhos_config = [
+            ("Lista de Alunos", "/configuracoes/alunos", "groups", None),
+            ("Relatórios", "/configuracoes/relatorios", "bar_chart", None),
+            ("Newsletter", "/configuracoes/newsletter", "campaign", None),
+            ("Escala", "/configuracoes/escala", "event_note", None),
+        ]
+        itens.append(("Configurações", None, "settings", filhos_config))
     itens.append(("Meu Cadastro", "/perfil", "person", None))
     return itens
 
@@ -81,10 +87,11 @@ def _item_menu_com_submenu(label, icone, filhos, active_path, collapsed, user):
         _item_menu_simples(label, filhos[0][1], icone, active_path, collapsed=True)
         return
 
-    aberto = bool(user.get("menu_creditos_aberto", algum_filho_ativo))
+    chave_estado = f"menu_aberto__{label}"
+    aberto = bool(user.get(chave_estado, algum_filho_ativo))
 
     def alternar():
-        user["menu_creditos_aberto"] = not aberto
+        user[chave_estado] = not aberto
         _sidebar.refresh(active_path, user)
 
     cabecalho = ui.row().style(

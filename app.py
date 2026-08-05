@@ -155,6 +155,13 @@ def pagina_dashboard():
 
 @ui.page("/configuracoes")
 def pagina_configuracoes():
+    # rota antiga (favoritos salvos, links já compartilhados) — redireciona
+    # pro primeiro item do submenu em vez de quebrar.
+    ui.navigate.to("/configuracoes/alunos")
+
+
+@ui.page("/configuracoes/alunos")
+def pagina_configuracoes_alunos():
     _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
@@ -162,8 +169,47 @@ def pagina_configuracoes():
     if not _require_role("gestor"):
         ui.navigate.to("/creditos")
         return
-    with shell("/configuracoes", app.storage.user):
-        configuracoes_page.render(app.storage.user)
+    with shell("/configuracoes/alunos", app.storage.user):
+        configuracoes_page.render_alunos(app.storage.user)
+
+
+@ui.page("/configuracoes/relatorios")
+def pagina_configuracoes_relatorios():
+    _aplicar_tema()
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    if not _require_role("gestor"):
+        ui.navigate.to("/creditos")
+        return
+    with shell("/configuracoes/relatorios", app.storage.user):
+        configuracoes_page.render_relatorios(app.storage.user)
+
+
+@ui.page("/configuracoes/newsletter")
+def pagina_configuracoes_newsletter():
+    _aplicar_tema()
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    if not _require_role("gestor"):
+        ui.navigate.to("/creditos")
+        return
+    with shell("/configuracoes/newsletter", app.storage.user):
+        configuracoes_page.render_newsletter(app.storage.user)
+
+
+@ui.page("/configuracoes/escala")
+def pagina_configuracoes_escala():
+    _aplicar_tema()
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    if not _require_role("gestor"):
+        ui.navigate.to("/creditos")
+        return
+    with shell("/configuracoes/escala", app.storage.user):
+        configuracoes_page.render_escala(app.storage.user)
 
 
 # A "storage_secret" assina o cookie de sessão do usuário — troque por um

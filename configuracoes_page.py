@@ -16,84 +16,90 @@ from newsletters import CTAS
 IMG_MAX_PX = (1200, 600)
 
 
-def render(user):
-    page_title("Configurações")
+def render_alunos(user):
+    page_title("Lista de Alunos")
+    _secao_lista_alunos()
 
-    aba_container = ui.column().style("width:100%; gap:16px;")
 
-    def mostrar(aba):
-        aba_container.clear()
-        with aba_container:
-            with ui.row().style("gap:8px; margin-bottom:4px;"):
-                for chave, rotulo in [("alunos", "Lista de Alunos"), ("relatorios", "Relatórios"),
-                                       ("newsletter", "Newsletter"), ("escala", "Escala")]:
-                    ui.button(rotulo, on_click=lambda c=chave: mostrar(c)).props(
-                        "unelevated" if aba == chave else "outline"
-                    ).style(
-                        (f"background:{TEAL}; color:white;" if aba == chave else f"color:{TEAL_DARK};")
-                        + " font-weight:700;"
-                    )
-            if aba == "alunos":
-                _secao_lista_alunos()
-            elif aba == "relatorios":
-                _secao_relatorio()
-            elif aba == "newsletter":
-                _secao_newsletter()
-            else:
-                _secao_escala()
+def render_relatorios(user):
+    page_title("Relatórios")
+    _secao_relatorio()
 
-    mostrar("alunos")
+
+def render_newsletter(user):
+    page_title("Newsletter")
+    _secao_newsletter()
+
+
+def render_escala(user):
+    page_title("Escala")
+    _secao_escala()
 
 
 def _secao_lista_alunos():
-    lista_container = ui.column().style("width:100%; gap:10px;")
+    container = ui.column().style("width:100%; gap:0;")
 
     def recarregar():
-        lista_container.clear()
-        alunos = students.listar_alunos()
-        with lista_container:
+        container.clear()
+        alunos = students.relatorio_alunos()
+        with container:
             if not alunos:
                 ui.label("Nenhum aluno cadastrado ainda.").style(f"color:{TEXT_MUTED};")
                 return
-            for aluno in alunos:
-                _linha_aluno(aluno, recarregar)
+            _tabela_alunos(alunos, recarregar)
 
     recarregar()
 
 
-def _linha_aluno(aluno, on_done):
-    with ui.column().classes("canoa-card").style("width:100%; gap:8px;"):
-        edit_container = ui.column().style("width:100%; order:2;")
+def _tabela_alunos(linhas, on_done):
+    headers = ["Nome", "E-mail", "Celular", "Nascimento", "Aulas", "Créditos", "Última remada", "Validade", ""]
+    larguras = ["160px", "190px", "130px", "100px", "60px", "80px", "120px", "100px", "170px"]
+    min_total = "1110px"
+    with ui.column().classes("canoa-card").style("width:100%; gap:0; overflow-x:auto;"):
+        with ui.row().style(
+            f"border-bottom:2px solid {BORDER}; padding-bottom:8px; gap:0; width:100%; min-width:{min_total};"
+        ):
+            for h, w in zip(headers, larguras):
+                ui.label(h).style(f"width:{w}; flex-shrink:0; color:{TEXT_MUTED}; font-weight:700; font-size:11.5px;")
 
-        with ui.row().style("justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px; order:1;"):
-            with ui.column().style("gap:0;"):
-                ui.label(aluno["nome"]).style(f"color:{TEXT}; font-weight:700; font-size:14px;")
-                ui.label(f"{aluno['email']} \u2022 {aluno['celular']}").style(
-                    f"color:{TEXT_MUTED}; font-size:12px;"
+        for l in linhas:
+            with ui.row().style(
+                f"padding:7px 0; gap:0; width:100%; min-width:{min_total}; align-items:center; "
+                "border-bottom:1px solid #EEF1F3;"
+            ):
+                ui.label(l["nome"]).style(f"width:{larguras[0]}; flex-shrink:0; color:{TEXT}; font-weight:700; font-size:12.5px;")
+                ui.label(l["email"]).style(f"width:{larguras[1]}; flex-shrink:0; color:{TEXT}; font-size:12px;")
+                ui.label(l["celular"]).style(f"width:{larguras[2]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(l["data_nascimento"] or "\u2014").style(f"width:{larguras[3]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(l["aulas_reservadas"])).style(f"width:{larguras[4]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(str(l["saldo_creditos"])).style(
+                    f"width:{larguras[5]}; flex-shrink:0; color:{TEAL_DARK}; font-weight:700; font-size:12.5px;"
                 )
-            with ui.row().style("gap:8px;"):
-                def promover(uid=aluno["id"]):
-                    students.promover_para_instrutor(uid)
-                    ui.notify(f"{aluno['nome']} agora é instrutor.", type="positive")
-                    on_done()
+                ui.label(l["ultima_aula"] or "\u2014").style(f"width:{larguras[6]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
+                ui.label(l["proxima_validade"] or "\u2014").style(f"width:{larguras[7]}; flex-shrink:0; color:{TEXT}; font-size:12.5px;")
 
-                ui.button("Promover a instrutor", on_click=promover).props("outline").style(
-                    f"color:{TEAL_DARK}; font-weight:700; font-size:12.5px;"
-                )
+                with ui.row().style(f"width:{larguras[8]}; flex-shrink:0; gap:6px;"):
+                    def promover(uid=l["id"], nome=l["nome"]):
+                        students.promover_para_instrutor(uid)
+                        ui.notify(f"{nome} agora é instrutor.", type="positive")
+                        on_done()
 
-                def abrir_edicao(a=aluno):
-                    edit_container.clear()
-                    with edit_container:
-                        _form_editar_aluno(a, on_done)
+                    ui.button("Promover", on_click=promover).props("outline dense").style(
+                        f"color:{TEAL_DARK}; font-weight:700; font-size:10.5px;"
+                    )
 
-                ui.button("Editar cadastro", on_click=abrir_edicao).props("flat dense").style(
-                    f"color:{TEXT_MUTED}; font-weight:700; font-size:12.5px;"
-                )
+                    def abrir_edicao(a=l):
+                        _abrir_modal_editar_aluno(a, on_done)
+
+                    ui.button("Editar", on_click=abrir_edicao).props("flat dense").style(
+                        f"color:{TEXT_MUTED}; font-weight:700; font-size:10.5px;"
+                    )
 
 
-def _form_editar_aluno(aluno, on_done):
+def _abrir_modal_editar_aluno(aluno, on_done):
     dados = auth.get_usuario(aluno["id"])
-    with ui.column().style(f"border-top:1px solid {BORDER}; padding-top:10px; gap:8px; width:100%;"):
+    with ui.dialog() as dialog, ui.card().style("width:min(480px, 92vw); padding:22px; gap:10px;"):
+        ui.label(f"Editar cadastro \u2014 {dados['nome']}").style(f"color:{NAVY}; font-weight:800; font-size:15px;")
         nome = ui.input("Nome completo *", value=dados["nome"]).classes("w-full")
         sexo = ui.select(["Feminino", "Masculino", "Outro"],
                           value=dados["sexo"] if dados["sexo"] in ["Feminino", "Masculino", "Outro"] else "Feminino",
@@ -118,11 +124,15 @@ def _form_editar_aluno(aluno, on_done):
                 cep=cep.value or None, endereco_numero=numero.value or None,
             )
             ui.notify("Cadastro atualizado.", type="positive")
+            dialog.close()
             on_done()
 
-        ui.button("Salvar", on_click=salvar).props("unelevated").style(
-            f"background:{TEAL}; color:white; font-weight:700; width:fit-content;"
-        )
+        with ui.row().style("gap:10px; margin-top:4px;"):
+            ui.button("Salvar", on_click=salvar).props("unelevated").style(
+                f"background:{TEAL}; color:white; font-weight:700;"
+            )
+            ui.button("Fechar", on_click=dialog.close).props("flat").style(f"color:{TEXT_MUTED};")
+    dialog.open()
 
 
 def _secao_relatorio():

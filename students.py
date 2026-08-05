@@ -24,10 +24,12 @@ def relatorio_alunos():
     - status: 'Ativo' se tem crédito disponível, 'Inativo' se não tem
     - aulas_reservadas: quantas vezes esteve PRESENTE (não conta faltas nem reservas futuras)
     - ultima_aula: data da última aula em que esteve presente
+    - saldo_creditos: quantidade de créditos disponíveis agora
+    - proxima_validade: validade do crédito disponível mais próximo de vencer
     """
     with db() as conn:
         alunos = conn.execute(
-            "SELECT id, nome, celular, data_nascimento FROM users "
+            "SELECT id, nome, email, celular, data_nascimento FROM users "
             "WHERE role = 'aluno' ORDER BY nome"
         ).fetchall()
         linhas = []
@@ -44,11 +46,14 @@ def relatorio_alunos():
             linhas.append({
                 "id": a["id"],
                 "nome": a["nome"],
+                "email": a["email"],
                 "celular": a["celular"],
                 "data_nascimento": a["data_nascimento"],
                 "aulas_reservadas": aulas_reservadas,
                 "ultima_aula": ultima,
             })
     for linha in linhas:
-        linha["status"] = "Ativo" if credits.saldo_disponivel(linha["id"]) > 0 else "Inativo"
+        linha["saldo_creditos"] = credits.saldo_disponivel(linha["id"])
+        linha["proxima_validade"] = credits.proxima_validade(linha["id"])
+        linha["status"] = "Ativo" if linha["saldo_creditos"] > 0 else "Inativo"
     return linhas

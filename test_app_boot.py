@@ -3,7 +3,7 @@
 Testa o boot do app.py de verdade — não só cada tela isolada, mas o
 processo de inicialização completo: init_db(), seed_demo(),
 seed_newsletters_iniciais(), registro de todas as rotas (@ui.page) e a
-rota de webhook do Mercado Pago (@app.post).
+rota de webhook do Asaas (@app.post).
 """
 import os
 import sys
@@ -68,6 +68,6 @@ sys.modules["fastapi"] = fake_fastapi
 
 import app  # noqa: E402
 
-assert hasattr(app, "webhook_mercadopago"), "rota de webhook do Mercado Pago deveria existir"
+assert hasattr(app, "webhook_asaas"), "rota de webhook do Asaas deveria existir"
 print("OK — app.py sobe do zero sem erro: init_db, seeds e todas as rotas registradas.")
 print("\nTodos os testes de boot do app passaram.")

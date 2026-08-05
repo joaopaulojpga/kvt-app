@@ -30,20 +30,19 @@ def _aplicar_tema():
     ui.colors(primary=TEAL, secondary=NAVY, accent=TEAL_DARK, positive=OK, negative=DANGER, warning=WARN)
 
 
-@app.post("/webhook/mercadopago")
-async def webhook_mercadopago(request: Request):
-    """Recebe a confirmação de pagamento do Mercado Pago (fonte confiável de verdade)."""
+@app.post("/webhook/asaas")
+async def webhook_asaas(request: Request):
+    """Recebe a confirmação de pagamento do Asaas (fonte confiável de verdade)."""
     try:
         body = await request.json()
     except Exception:
         body = {}
-    query = dict(request.query_params)
     try:
-        payments.processar_webhook(body, query)
+        payments.processar_webhook(body, dict(request.headers))
     except Exception as e:
-        # Nunca deixamos uma falha aqui derrubar a resposta ao Mercado Pago —
-        # ele reenvia a notificação depois se não receber 200 OK.
-        print(f"[webhook mercadopago] erro ao processar: {e}")
+        # Nunca deixamos uma falha aqui derrubar a resposta ao Asaas — ele
+        # reenvia a notificação depois se não receber HTTP 2xx.
+        print(f"[webhook asaas] erro ao processar: {e}")
     return {"status": "ok"}
 
 

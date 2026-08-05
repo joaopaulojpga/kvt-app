@@ -17,12 +17,33 @@ PLANOS = {
 def render(user):
     page_title("Comprar Remadas")
     ui.label(
-        "Ao clicar em \"Comprar\", você será redirecionado para o ambiente seguro "
-        "do Mercado Pago para pagar via Pix ou cartão. Suas remadas aparecem em "
-        "\"Minhas Remadas\" assim que o pagamento for aprovado."
+        "Ao clicar em \"Comprar\", a tela de pagamento do Asaas abre aqui mesmo "
+        "(Pix ou cartão). Suas remadas aparecem em \"Minhas Remadas\" assim que "
+        "o pagamento for aprovado."
     ).style(f"color:{TEXT_MUTED}; font-size:12.5px; max-width:560px;")
 
     msg = ui.label("")
+
+    def _abrir_checkout(url):
+        with ui.dialog().props("maximized") as dialog, ui.card().style(
+            "padding:0; gap:0; width:100%; height:100%;"
+        ):
+            with ui.row().style(
+                f"width:100%; padding:10px 16px; background:{NAVY}; "
+                "align-items:center; justify-content:space-between; flex-shrink:0;"
+            ):
+                ui.label("Pagamento seguro \u2014 Asaas").style("color:white; font-weight:700; font-size:14px;")
+                with ui.row().style("gap:8px; align-items:center;"):
+                    ui.label("Não carregou?").style("color:#CDE8B8; font-size:11.5px;")
+                    ui.button(
+                        "Abrir em nova aba", on_click=lambda: ui.navigate.to(url, new_tab=True)
+                    ).props("flat dense").style("color:white; font-size:11.5px; text-decoration:underline;")
+                    ui.button(icon="close", on_click=dialog.close).props("flat dense round").style("color:white;")
+            ui.html(
+                f'<iframe src="{url}" style="width:100%; height:calc(100vh - 52px); '
+                'border:0; display:block;" allow="payment"></iframe>'
+            ).style("width:100%; flex:1;")
+        dialog.open()
 
     def comprar(plano_key):
         plano = PLANOS[plano_key]
@@ -30,13 +51,9 @@ def render(user):
         try:
             dados = auth.get_usuario(user["id"])
             purchase_id = payments.criar_compra_pendente(user["id"], plano_key, preco)
-            url = payments.criar_preferencia(purchase_id, plano["nome"], preco, dados["email"])
-            ui.navigate.to(url, new_tab=True)
-            msg.set_text(
-                "Abrimos uma nova aba para você concluir o pagamento no Mercado Pago. "
-                "Depois de pagar, suas remadas aparecem em \"Minhas Remadas\" em poucos instantes."
-            )
-            msg.style(f"color:{TEAL_DARK}; font-size:13px; font-weight:600;")
+            url = payments.criar_checkout(purchase_id, plano["nome"], preco, dados)
+            _abrir_checkout(url)
+            msg.set_text("")
         except PagamentoError as e:
             msg.set_text(f"Não foi possível iniciar o pagamento: {e}")
             msg.style(f"color:{DANGER}; font-size:13px;")

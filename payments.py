@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Integração com o Mercado Pago (Checkout Pro).
+Integração com o Asaas (Checkout Asaas).
 
-Fluxo: criamos uma "preferência" de pagamento e redirecionamos o
-comprador para a página hospedada pelo Mercado Pago (ele escolhe Pix ou
-cartão por lá — mais simples e mais seguro do que reimplementar
-tokenização de cartão na mão). A confirmação de pagamento chega via
-webhook (`processar_webhook`), que é a fonte confiável — o redirecionamento
-de volta ao app é só uma conveniência de UX, nunca usado sozinho para
-liberar o crédito.
+Fluxo: criamos um "checkout" (equivalente à antiga preferência do Mercado
+Pago) e mostramos o link retornado dentro de um iframe, na própria página
+de compra — sem abrir nova aba nem forçar redirecionamento. A confirmação
+de pagamento chega via webhook (`processar_webhook`), que é a fonte
+confiável — o retorno de callback (successUrl) é só uma conveniência de
+UX, nunca usado sozinho para liberar o crédito.
+
+Autenticação do Asaas: header `access_token` (não usa `Authorization:
+Bearer`, diferente da maioria das APIs REST — atenção ao integrar).
 """
 import os
 import json
@@ -19,9 +21,21 @@ from db import db, insert_returning_id
 import credits
 import mailer as email_mod
 
-MP_ACCESS_TOKEN = os.environ.get("MERCADOPAGO_ACCESS_TOKEN")
-MP_API_BASE = "https://api.mercadopago.com"
+ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY")
+ASAAS_ENV = os.environ.get("ASAAS_ENV", "sandbox")  # "sandbox" ou "production"
+ASAAS_API_BASE = (
+    "https://api.asaas.com/v3" if ASAAS_ENV == "production" else "https://api-sandbox.asaas.com/v3"
+)
+# Token opcional enviado pelo Asaas no header 'asaas-access-token' de cada
+# webhook — configurado ao criar o webhook no painel do Asaas. Se não for
+# definido, pulamos a validação (não recomendado em produção).
+ASAAS_WEBHOOK_TOKEN = os.environ.get("ASAAS_WEBHOOK_TOKEN")
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
+# Eventos de webhook que consideramos "pago" — Pix cai direto em
+# PAYMENT_RECEIVED; cartão de crédito é aprovado em PAYMENT_CONFIRMED
+# (o dinheiro em si é liquidado depois, mas a compra já está garantida).
+EVENTOS_PAGO = {"PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"}
 
 
 class PagamentoError(Exception):
@@ -29,16 +43,17 @@ class PagamentoError(Exception):
 
 
 def _request(method, path, payload=None):
-    if not MP_ACCESS_TOKEN:
-        raise PagamentoError("Mercado Pago não configurado (variável MERCADOPAGO_ACCESS_TOKEN ausente).")
+    if not ASAAS_API_KEY:
+        raise PagamentoError("Asaas não configurado (variável ASAAS_API_KEY ausente).")
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     req = urllib.request.Request(
-        MP_API_BASE + path,
+        ASAAS_API_BASE + path,
         data=data,
         method=method,
         headers={
-            "Authorization": f"Bearer {MP_ACCESS_TOKEN}",
+            "access_token": ASAAS_API_KEY,
             "Content-Type": "application/json",
+            "User-Agent": "KalaniVaaTeam/1.0",
         },
     )
     try:
@@ -46,42 +61,53 @@ def _request(method, path, payload=None):
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detalhe = e.read().decode("utf-8", errors="replace")
-        raise PagamentoError(f"Mercado Pago recusou a requisição ({e.code}): {detalhe}") from e
+        raise PagamentoError(f"Asaas recusou a requisição ({e.code}): {detalhe}") from e
     except urllib.error.URLError as e:
-        raise PagamentoError(f"Não foi possível conectar ao Mercado Pago: {e}") from e
+        raise PagamentoError(f"Não foi possível conectar ao Asaas: {e}") from e
 
 
-def criar_preferencia(purchase_id, titulo, valor_centavos, email_comprador):
+def criar_checkout(purchase_id, titulo, valor_centavos, dados_comprador):
+    """
+    Cria um Checkout Asaas (equivalente à preferência do Mercado Pago) e
+    retorna o link hospedado para o pagador concluir Pix ou cartão.
+    `dados_comprador` é o dict de auth.get_usuario(...) do comprador.
+    """
     if not APP_BASE_URL:
         raise PagamentoError(
-            "Variável APP_BASE_URL não configurada — necessária para o Mercado Pago "
+            "Variável APP_BASE_URL não configurada — necessária para o Asaas "
             "saber para onde redirecionar e avisar sobre o pagamento."
         )
     payload = {
-        "items": [{
-            "title": titulo,
-            "quantity": 1,
-            "unit_price": round(valor_centavos / 100, 2),
-            "currency_id": "BRL",
-        }],
-        "payer": {"email": email_comprador},
-        "external_reference": str(purchase_id),
-        "back_urls": {
-            "success": f"{APP_BASE_URL}/comprar",
-            "failure": f"{APP_BASE_URL}/comprar",
-            "pending": f"{APP_BASE_URL}/comprar",
+        "billingTypes": ["PIX", "CREDIT_CARD"],
+        "chargeTypes": ["DETACHED"],
+        "minutesToExpire": 30,
+        "externalReference": str(purchase_id),
+        "callback": {
+            "successUrl": f"{APP_BASE_URL}/comprar",
+            "cancelUrl": f"{APP_BASE_URL}/comprar",
+            "expiredUrl": f"{APP_BASE_URL}/comprar",
         },
-        "auto_return": "approved",
-        "notification_url": f"{APP_BASE_URL}/webhook/mercadopago",
+        "items": [{
+            "name": titulo,
+            "quantity": 1,
+            "value": round(valor_centavos / 100, 2),
+        }],
+        "customerData": {
+            "name": dados_comprador["nome"],
+            "cpfCnpj": (dados_comprador.get("cpf") or "").replace(".", "").replace("-", ""),
+            "email": dados_comprador["email"],
+            "phone": (dados_comprador.get("celular") or "").replace("(", "").replace(")", "")
+                                                              .replace("-", "").replace(" ", ""),
+        },
     }
-    resp = _request("POST", "/checkout/preferences", payload)
-    if "init_point" not in resp:
-        raise PagamentoError(f"Resposta inesperada do Mercado Pago ao criar preferência: {resp}")
-    return resp["init_point"]
+    resp = _request("POST", "/checkouts", payload)
+    if "link" not in resp:
+        raise PagamentoError(f"Resposta inesperada do Asaas ao criar checkout: {resp}")
+    return resp["link"]
 
 
 def consultar_pagamento(payment_id):
-    return _request("GET", f"/v1/payments/{payment_id}")
+    return _request("GET", f"/payments/{payment_id}")
 
 
 def criar_compra_pendente(user_id, plano_key, valor_centavos):
@@ -89,29 +115,35 @@ def criar_compra_pendente(user_id, plano_key, valor_centavos):
         purchase_id = insert_returning_id(
             conn,
             "INSERT INTO purchases (user_id, plano, valor_centavos, forma_pagamento, status) "
-            "VALUES (?, ?, ?, 'mercadopago', 'pendente')",
+            "VALUES (?, ?, ?, 'asaas', 'pendente')",
             (user_id, plano_key, valor_centavos),
         )
     return purchase_id
 
 
-def processar_webhook(body: dict, query: dict):
+def processar_webhook(body: dict, headers: dict):
     """
-    Chamado pela rota /webhook/mercadopago. Aceita tanto o formato de
-    query string (?type=payment&data.id=123) quanto o corpo JSON que o
-    Mercado Pago manda hoje ({"type": "payment", "data": {"id": "123"}}).
-    Idempotente: se a compra já estiver 'pago', não credita de novo.
+    Chamado pela rota /webhook/asaas. Valida o header 'asaas-access-token'
+    (se ASAAS_WEBHOOK_TOKEN estiver configurado) e credita a compra quando
+    o evento indica pagamento confirmado. Idempotente: se a compra já
+    estiver 'pago', não credita de novo.
     """
-    tipo = query.get("type") or body.get("type")
-    payment_id = query.get("data.id") or (body.get("data") or {}).get("id")
-    if tipo != "payment" or not payment_id:
-        return  # notificação de outro tipo (ex: merchant_order) — ignora
+    if ASAAS_WEBHOOK_TOKEN:
+        recebido = headers.get("asaas-access-token") or headers.get("Asaas-Access-Token")
+        if recebido != ASAAS_WEBHOOK_TOKEN:
+            print("[webhook asaas] token inválido — ignorando notificação")
+            return
 
-    pagamento = consultar_pagamento(payment_id)
-    if pagamento.get("status") != "approved":
+    evento = body.get("event")
+    if evento not in EVENTOS_PAGO:
+        return  # outros eventos (criado, vencido, estornado etc.) não interessam aqui
+
+    payment_id = (body.get("payment") or {}).get("id")
+    if not payment_id:
         return
 
-    purchase_id = pagamento.get("external_reference")
+    pagamento = consultar_pagamento(payment_id)
+    purchase_id = pagamento.get("externalReference")
     if not purchase_id:
         return
 

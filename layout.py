@@ -51,6 +51,7 @@ def _menu_para(user):
             ("Relatórios", "/configuracoes/relatorios", "bar_chart", None),
             ("Newsletter", "/configuracoes/newsletter", "campaign", None),
             ("Escala", "/configuracoes/escala", "event_note", None),
+            ("Mensagens WhatsApp", "/configuracoes/mensagens", "chat", None),
         ]
         itens.append(("Configurações", None, "settings", filhos_config))
     itens.append(("Meu Cadastro", "/perfil", "person", None))

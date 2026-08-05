@@ -64,6 +64,9 @@ def reservar(user_id, class_id, hoje=None):
                 "VALUES (?, ?, ?, 'confirmada', 0)",
                 (class_id, user_id, credit_id),
             )
+            usuario = conn.execute("SELECT nome, celular FROM users WHERE id = ?", (user_id,)).fetchone()
+            import whatsapp
+            whatsapp.notificar_reserva_confirmada(usuario["nome"], usuario["celular"], turma["data"], turma["horario"])
             return {"status": "confirmada"}
 
         elif confirmados < vagas_max:
@@ -74,6 +77,9 @@ def reservar(user_id, class_id, hoje=None):
                 "VALUES (?, ?, NULL, 'pendente_aprovacao', 1)",
                 (class_id, user_id),
             )
+            usuario = conn.execute("SELECT nome, celular FROM users WHERE id = ?", (user_id,)).fetchone()
+            import whatsapp
+            whatsapp.notificar_reserva_pendente(usuario["nome"], usuario["celular"], turma["data"], turma["horario"])
             return {"status": "pendente_aprovacao"}
 
         else:
@@ -106,6 +112,9 @@ def cancelar_reserva(reservation_id, agora=None):
                 user_id=res["user_id"], reservation_id=res["id"],
             )
         conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
+        usuario = conn.execute("SELECT nome, celular FROM users WHERE id = ?", (res["user_id"],)).fetchone()
+    import whatsapp
+    whatsapp.notificar_reserva_cancelada(usuario["nome"], usuario["celular"], turma["data"], turma["horario"])
 
 
 def remover_aluno(reservation_id):
@@ -123,12 +132,16 @@ def remover_aluno(reservation_id):
             raise ReservaError("Reserva não encontrada.")
         if res["status"] == "cancelada":
             raise ReservaError("Esta reserva já está cancelada.")
+        turma = conn.execute("SELECT * FROM classes WHERE id = ?", (res["class_id"],)).fetchone()
         if res["credit_id"] is not None:
             credits.devolver_credito(
                 res["credit_id"], motivo_extensao=False,
                 user_id=res["user_id"], reservation_id=res["id"],
             )
         conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
+        usuario = conn.execute("SELECT nome, celular FROM users WHERE id = ?", (res["user_id"],)).fetchone()
+    import whatsapp
+    whatsapp.notificar_reserva_cancelada(usuario["nome"], usuario["celular"], turma["data"], turma["horario"])
 
 
 def listar_participantes(class_id):

@@ -118,6 +118,7 @@ testar("configuracoes_page", "render_newsletter", user_gestor)
 testar("configuracoes_page", "render_escala", user_gestor)
 testar("historico_creditos_page", "render", user_instrutor)
 testar("movimentacoes_page", "render", user_gestor)
+testar("mensagens_page", "render", user_gestor)
 
 
 # Testa também a aba "Newsletter" (não é a aba padrão, então o teste acima não passa por ela)
@@ -214,4 +215,4 @@ if erros:
         print(f" - {nome}: {e}")
     sys.exit(1)
 else:
-    print("Todas as 13 telas + layout carregaram sem erro com os dados de exemplo.")
+    print("Todas as 14 telas + layout carregaram sem erro com os dados de exemplo.")

@@ -55,6 +55,7 @@ fake_ui = FakeUiModule("ui")
 fake_ui.navigate = types.SimpleNamespace(to=lambda p: None)
 fake_app = types.SimpleNamespace(storage=types.SimpleNamespace(user={}))
 fake_app.post = lambda path: (lambda f: f)  # decorator do webhook
+fake_app.get = lambda path: (lambda f: f)
 fake_app.add_static_files = lambda *a, **k: None
 
 fake_nicegui = types.ModuleType("nicegui")
@@ -67,8 +68,15 @@ fake_fastapi = types.ModuleType("fastapi")
 fake_fastapi.Request = type("Request", (), {})
 sys.modules["fastapi"] = fake_fastapi
 
+fake_fastapi_responses = types.ModuleType("fastapi.responses")
+fake_fastapi_responses.PlainTextResponse = type("PlainTextResponse", (), {"__init__": lambda self, *a, **k: None})
+sys.modules["fastapi.responses"] = fake_fastapi_responses
+
 import app  # noqa: E402
 
 assert hasattr(app, "webhook_asaas"), "rota de webhook do Asaas deveria existir"
+assert hasattr(app, "tarefa_lembretes_vespera"), "rota da tarefa de lembretes de véspera deveria existir"
+assert hasattr(app, "receber_whatsapp"), "rota de recebimento do webhook do WhatsApp deveria existir"
+assert hasattr(app, "verificar_webhook_whatsapp"), "rota de verificação do webhook do WhatsApp deveria existir"
 print("OK — app.py sobe do zero sem erro: init_db, seeds e todas as rotas registradas.")
 print("\nTodos os testes de boot do app passaram.")

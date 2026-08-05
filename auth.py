@@ -29,6 +29,8 @@ def cadastrar_usuario(nome, sexo, email, senha, cpf, celular, instagram=None, ro
             (nome, sexo, email, _hash(senha), cpf, celular, instagram, role),
         )
         user_id = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()["id"]
+    import whatsapp
+    whatsapp.notificar_cadastro(nome, celular)
     return user_id
 
 

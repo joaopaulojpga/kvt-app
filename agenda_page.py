@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 from nicegui import ui
 from datetime import date
 import calendar
@@ -6,6 +7,7 @@ from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, DANGER, W
 from ui_helpers import badge
 from db import db
 import reservations, attendance, classes as turmas_mod, mailer as email_mod, credits
+import whatsapp
 import booking_modal
 from reservations import ReservaError
 from classes import TurmaError
@@ -136,7 +138,38 @@ def render(user, hoje=None):
     if user["role"] == "instrutor":
         _form_criar_turma(user, hoje, redesenhar)
 
+    if user["role"] in ("instrutor", "gestor"):
+        _botao_lista_grupo(hoje)
+
     redesenhar()
+
+
+def _botao_lista_grupo(hoje):
+    with ui.column().classes("canoa-card").style("width:100%; gap:8px;"):
+        ui.label("\U0001F4E2 Lista de turmas pro grupo do WhatsApp").style(
+            f"color:{NAVY}; font-weight:800; font-size:14px;"
+        )
+        ui.label("Gera o texto com as próximas 4 turmas (com alunos reservados) pra você colar no grupo.").style(
+            f"color:{TEXT_MUTED}; font-size:11.5px;"
+        )
+        container = ui.column().style("width:100%;")
+
+        def gerar():
+            container.clear()
+            texto = whatsapp.gerar_texto_lista_semana(hoje=hoje, incluir_alunos=True)
+            with container:
+                ui.textarea(value=texto).props("readonly").classes("w-full").style("font-size:12px;")
+
+                def copiar():
+                    ui.run_javascript(f"navigator.clipboard.writeText({json.dumps(texto)})")
+                    ui.notify("Texto copiado! Cole no grupo do WhatsApp.", type="positive")
+
+                ui.button("Copiar texto", icon="content_copy", on_click=copiar).props("unelevated").style(
+                    f"background:{TEAL}; color:white; font-weight:700;"
+                )
+
+        ui.button("Gerar lista", on_click=gerar).props("outline").style(f"color:{TEAL_DARK}; font-weight:700;")
+        container
 
 
 def _form_editar_turma(t, on_done):

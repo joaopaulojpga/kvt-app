@@ -48,6 +48,13 @@ def dar_baixa(class_id, status, presencas: dict, hoje=None):
                         user_id=r["user_id"], reservation_id=r["id"],
                     )
             conn.execute("UPDATE classes SET status = ? WHERE id = ?", (status, class_id))
+            participantes = conn.execute(
+                "SELECT u.nome, u.celular FROM reservations r JOIN users u ON u.id = r.user_id "
+                "WHERE r.class_id = ? AND r.status IN ('confirmada','presente','faltou')",
+                (class_id,),
+            ).fetchall()
+            import whatsapp
+            whatsapp.notificar_aula_cancelada(participantes, turma["data"], turma["horario"])
             return {"status": status, "repasses": []}
 
         # status == 'confirmada': marca presença/falta (crédito já foi consumido no check-in e
@@ -101,3 +108,9 @@ def cancelar_turma_pelo_instrutor(class_id, hoje=None):
                 )
             conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (r["id"],))
         conn.execute("UPDATE classes SET status = 'cancelada' WHERE id = ?", (class_id,))
+        participantes = [
+            conn.execute("SELECT nome, celular FROM users WHERE id = ?", (r["user_id"],)).fetchone()
+            for r in reservas
+        ]
+    import whatsapp
+    whatsapp.notificar_aula_cancelada(participantes, turma["data"], turma["horario"])

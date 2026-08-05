@@ -146,6 +146,16 @@ CREATE TABLE IF NOT EXISTS params (
     valor   TEXT NOT NULL
 );
 
+-- Dedup de notificações que não podem repetir (ex: lembrete de véspera
+-- não deve ser reenviado a cada nova checagem do agendador externo).
+CREATE TABLE IF NOT EXISTS notification_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipo           TEXT NOT NULL,
+    referencia_id  INTEGER NOT NULL,
+    enviado_em     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tipo, referencia_id)
+);
+
 INSERT OR IGNORE INTO params (chave, valor) VALUES
     ('valor_aula_centavos', '3500'),
     ('taxa_fixa_instrutor_centavos', '2500'),
@@ -272,6 +282,14 @@ CREATE TABLE IF NOT EXISTS newsletters (
 CREATE TABLE IF NOT EXISTS params (
     chave   TEXT PRIMARY KEY,
     valor   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notification_log (
+    id             SERIAL PRIMARY KEY,
+    tipo           TEXT NOT NULL,
+    referencia_id  INTEGER NOT NULL,
+    enviado_em     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tipo, referencia_id)
 );
 
 INSERT INTO params (chave, valor) VALUES

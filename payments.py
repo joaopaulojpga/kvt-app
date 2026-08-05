@@ -271,3 +271,5 @@ def processar_webhook(body: dict, headers: dict):
         usuario = conn.execute("SELECT * FROM users WHERE id = ?", (compra["user_id"],)).fetchone()
     if usuario:
         email_mod.enviar_confirmacao_compra(usuario["email"], usuario["nome"], plano["nome"], plano["creditos"])
+        import whatsapp
+        whatsapp.notificar_compra(usuario["nome"], usuario["celular"], plano["nome"], plano["creditos"])

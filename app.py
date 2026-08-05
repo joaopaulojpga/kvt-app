@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from fastapi import Request
+from fastapi.responses import PlainTextResponse
 from nicegui import ui, app
 
 from db import init_db
@@ -8,10 +9,13 @@ from seed import seed_demo
 from theme import GLOBAL_CSS, TEAL, NAVY, TEAL_DARK, OK, DANGER, WARN
 from pwa import PWA_HEAD_HTML, FAVICON_DATA_URI
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
-import historico_creditos_page, movimentacoes_page
+import historico_creditos_page, movimentacoes_page, mensagens_page
 import payments
 import newsletters
 from layout import shell
+
+import whatsapp
+import whatsapp_bot
 
 init_db()
 if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
@@ -45,6 +49,52 @@ async def webhook_asaas(request: Request):
         # reenvia a notificação depois se não receber HTTP 2xx.
         print(f"[webhook asaas] erro ao processar: {e}")
     return {"status": "ok"}
+
+
+@app.get("/webhook/whatsapp")
+async def verificar_webhook_whatsapp(request: Request):
+    """
+    Meta chama isso UMA VEZ (GET) quando você configura a URL do webhook
+    no painel, só pra confirmar que o endpoint é seu de verdade.
+    """
+    modo = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    desafio = request.query_params.get("hub.challenge") or ""
+    if modo == "subscribe" and token == os.environ.get("WHATSAPP_VERIFY_TOKEN"):
+        return PlainTextResponse(desafio)
+    return PlainTextResponse("token de verificação inválido", status_code=403)
+
+
+@app.post("/webhook/whatsapp")
+async def receber_whatsapp(request: Request):
+    """Recebe mensagens que os usuários mandam pro número do clube (Scripts — Fase 2)."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    try:
+        whatsapp_bot.processar_webhook_recebido(body)
+    except Exception as e:
+        print(f"[webhook whatsapp] erro ao processar: {e}")
+    return {"status": "ok"}
+
+
+@app.post("/tasks/lembretes-vespera")
+async def tarefa_lembretes_vespera(request: Request):
+    """
+    Chamado periodicamente por um agendador EXTERNO gratuito (GitHub
+    Actions ou cron-job.org) — não por um Cron Job do Render, que é
+    pago. Protegido por um token simples via query string.
+    """
+    token_esperado = os.environ.get("TASKS_TOKEN")
+    if token_esperado and request.query_params.get("token") != token_esperado:
+        return {"status": "erro", "motivo": "token inválido"}
+    try:
+        enviados = whatsapp.verificar_lembretes_vespera()
+    except Exception as e:
+        print(f"[tasks] erro ao verificar lembretes de véspera: {e}")
+        return {"status": "erro", "detalhe": str(e)}
+    return {"status": "ok", "enviados": enviados}
 
 
 def _logged_in():
@@ -210,6 +260,19 @@ def pagina_configuracoes_escala():
         return
     with shell("/configuracoes/escala", app.storage.user):
         configuracoes_page.render_escala(app.storage.user)
+
+
+@ui.page("/configuracoes/mensagens")
+def pagina_configuracoes_mensagens():
+    _aplicar_tema()
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    if not _require_role("gestor"):
+        ui.navigate.to("/creditos")
+        return
+    with shell("/configuracoes/mensagens", app.storage.user):
+        mensagens_page.render(app.storage.user)
 
 
 # A "storage_secret" assina o cookie de sessão do usuário — troque por um

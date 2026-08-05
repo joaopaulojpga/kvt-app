@@ -165,3 +165,7 @@ def atribuir_instrutor_escala(class_id, instrutor_id):
             "UPDATE classes SET instrutor_resp_id = ?, atribuido_em = CURRENT_TIMESTAMP WHERE id = ?",
             (instrutor_id, class_id),
         )
+        instrutor = conn.execute("SELECT nome, celular FROM users WHERE id = ?", (instrutor_id,)).fetchone()
+        data_turma = conn.execute("SELECT data, horario FROM classes WHERE id = ?", (class_id,)).fetchone()
+    import whatsapp
+    whatsapp.notificar_escala_atribuida(instrutor["nome"], instrutor["celular"], data_turma["data"], data_turma["horario"])

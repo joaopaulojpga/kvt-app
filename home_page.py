@@ -1,39 +1,46 @@
 # -*- coding: utf-8 -*-
 from nicegui import ui, app
-from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, DANGER, APP_NAME
-from logo_data import LOGO_KALANI_DATA_URI
+from theme import TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, BG, DANGER
 import auth
 import carousel
 
+# Foto real do clube (lago, canoas, grupo) servida como arquivo estático —
+# ver app.add_static_files("/img", "static") em app.py. A imagem já traz o
+# logo oficial "Kalani Vaa Team" embutido, então não repetimos logo/nome
+# separadamente aqui embaixo (ficaria duplicado, logo colada em logo).
+BACKGROUND_IMAGE_URL = "/img/bg-login.jpg"
+
 
 def render():
-    with ui.column().style("max-width:900px; margin:0 auto; padding:48px 24px; gap:24px;").classes("kv-landing"):
-        with ui.row().style("align-items:center; gap:10px;"):
-            ui.image(LOGO_KALANI_DATA_URI).style("width:40px; height:40px; border-radius:50%;")
-            ui.label(APP_NAME).style(f"color:{NAVY}; font-size:26px; font-weight:800;")
+    with ui.column().style(f"width:100%; min-height:100vh; margin:0; padding:0; background:{BG};"):
+        with ui.column().style("max-width:900px; margin:0 auto; padding:0 24px 48px; gap:24px;").classes("kv-landing"):
+            ui.image(BACKGROUND_IMAGE_URL).style(
+                "width:100%; height:300px; object-fit:cover; object-position:center 62%; "
+                "border-radius:0 0 20px 20px; margin:0 0 4px 0;"
+            )
 
-        carousel.render_carousel()
+            carousel.render_carousel()
 
-        ui.button("COMEÇAR AGORA", on_click=lambda: ui.run_javascript(
-            "document.getElementById('cadastro-section')?.scrollIntoView({behavior:'smooth'});"
-        )).props("unelevated").style(
-            f"background:{TEAL}; color:white; font-weight:800; font-size:16px; "
-            "width:100%; padding:16px; border-radius:12px; letter-spacing:0.5px;"
-        )
+            ui.button("COMEÇAR AGORA", on_click=lambda: ui.run_javascript(
+                "document.getElementById('cadastro-section')?.scrollIntoView({behavior:'smooth'});"
+            )).props("unelevated").style(
+                f"background:{TEAL}; color:white; font-weight:800; font-size:16px; "
+                "width:100%; padding:16px; border-radius:12px; letter-spacing:0.5px;"
+            )
 
-        _grade_horarios_chips()
+            _grade_horarios_chips()
 
-        with ui.column().style("width:100%;").props('id="cadastro-section"'):
-            with ui.tabs().classes("w-full") as tabs:
-                tab_login = ui.tab("Entrar")
-                tab_cadastro = ui.tab("Cadastrar")
-            with ui.tab_panels(tabs, value=tab_login).classes("w-full").style(
-                "background:transparent;"
-            ):
-                with ui.tab_panel(tab_login):
-                    _form_login()
-                with ui.tab_panel(tab_cadastro):
-                    _form_cadastro()
+            with ui.column().style("width:100%;").props('id="cadastro-section"'):
+                with ui.tabs().classes("w-full") as tabs:
+                    tab_login = ui.tab("Entrar")
+                    tab_cadastro = ui.tab("Cadastrar")
+                with ui.tab_panels(tabs, value=tab_login).classes("w-full").style(
+                    "background:transparent;"
+                ):
+                    with ui.tab_panel(tab_login):
+                        _form_login()
+                    with ui.tab_panel(tab_cadastro):
+                        _form_cadastro()
 
 
 def _grade_horarios_chips():

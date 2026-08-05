@@ -203,10 +203,11 @@ def _form_newsletter(item, on_done):
             f"background:{BORDER}; display:{'block' if imagem_atual['data_uri'] else 'none'};"
         )
 
-        def ao_enviar_imagem(e: events.UploadEventArguments):
+        async def ao_enviar_imagem(e: events.UploadEventArguments):
             try:
                 from PIL import Image
-                img = Image.open(e.content).convert("RGB")
+                dados_arquivo = await e.file.read()
+                img = Image.open(io.BytesIO(dados_arquivo)).convert("RGB")
                 img.thumbnail(IMG_MAX_PX)
                 buf = io.BytesIO()
                 img.save(buf, format="JPEG", quality=82, optimize=True)

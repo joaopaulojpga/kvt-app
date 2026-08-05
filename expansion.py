@@ -45,7 +45,7 @@ def aprovar_expansao(reservation_id, instrutor2_id, hoje=None):
         if res is None or res["status"] != "pendente_aprovacao":
             raise ExpansaoError("Solicitação não encontrada ou já processada.")
 
-        credit_id = credits.consumir_um_credito(res["user_id"], hoje=hoje)
+        credit_id = credits.consumir_um_credito(res["user_id"], hoje=hoje, reservation_id=reservation_id)
         if credit_id is None:
             raise ExpansaoError("Aluno não tem mais remadas disponíveis para confirmar a vaga.")
 

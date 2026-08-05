@@ -7,7 +7,7 @@ from calendar_ics import gerar_ics
 DIAS_PT = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 
 
-def mostrar_confirmacao(data_str, horario_str):
+def mostrar_confirmacao(data_str, horario_str, on_close=None):
     try:
         d = date_cls.fromisoformat(str(data_str))
         data_fmt = f"{DIAS_PT[d.weekday()]}, {d.strftime('%d/%m/%Y')}"
@@ -46,5 +46,8 @@ def mostrar_confirmacao(data_str, horario_str):
             ui.button("Fechar", on_click=dialog.close).props("unelevated").style(
                 f"background:{TEAL}; color:white; font-weight:700;"
             )
+
+    if on_close:
+        dialog.on("hide", on_close)
 
     dialog.open()

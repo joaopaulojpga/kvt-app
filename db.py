@@ -67,6 +67,14 @@ CREATE TABLE IF NOT EXISTS credits (
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ledger de créditos: registro imutável de TODA movimentação (entrada ou
+-- saída). É a fonte de verdade para auditoria — nunca editado ou apagado,
+-- só recebe novas linhas. O saldo em si continua calculado a partir da
+-- tabela `credits` (cada linha = 1 crédito, com sua própria validade,
+-- necessário pro FIFO de expiração), mas toda vez que `credits` muda,
+-- uma linha correspondente nasce aqui também, na mesma transação.
+-- (definida logo após `reservations`, pois referencia essa tabela)
+
 CREATE TABLE IF NOT EXISTS classes (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     data                DATE NOT NULL,
@@ -76,6 +84,7 @@ CREATE TABLE IF NOT EXISTS classes (
     vagas_max           INTEGER NOT NULL DEFAULT 18,
     instrutor_resp_id   INTEGER REFERENCES users(id),
     instrutor2_id       INTEGER REFERENCES users(id),
+    atribuido_em        TIMESTAMP,
     status              TEXT NOT NULL DEFAULT 'agendada',
     criado_em           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -89,6 +98,22 @@ CREATE TABLE IF NOT EXISTS reservations (
     is_vaga_extra   INTEGER NOT NULL DEFAULT 0,
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(class_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS credit_transactions (
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id                INTEGER NOT NULL REFERENCES users(id),
+    tipo_movimentacao      TEXT NOT NULL,   -- compra_online | venda_offline | cortesia | reposicao | reagendamento | ajuste_manual | reserva | estorno
+    tipo_operacao          TEXT NOT NULL,   -- entrada | saida
+    quantidade_creditos    INTEGER NOT NULL,
+    saldo_anterior         INTEGER NOT NULL,
+    saldo_posterior        INTEGER NOT NULL,
+    purchase_id            INTEGER REFERENCES purchases(id),
+    reservation_id         INTEGER REFERENCES reservations(id),
+    forma_pagamento        TEXT,            -- só preenchido em venda_offline: pix | dinheiro | cartao | transferencia
+    usuario_responsavel_id INTEGER REFERENCES users(id),  -- quem lançou (gestor) — NULL quando é o próprio sistema (compra online, reserva)
+    observacoes            TEXT,
+    criado_em              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS payouts (
@@ -187,6 +212,7 @@ CREATE TABLE IF NOT EXISTS classes (
     vagas_max           INTEGER NOT NULL DEFAULT 18,
     instrutor_resp_id   INTEGER REFERENCES users(id),
     instrutor2_id       INTEGER REFERENCES users(id),
+    atribuido_em        TIMESTAMP,
     status              TEXT NOT NULL DEFAULT 'agendada',
     criado_em           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -200,6 +226,22 @@ CREATE TABLE IF NOT EXISTS reservations (
     is_vaga_extra   INTEGER NOT NULL DEFAULT 0,
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(class_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS credit_transactions (
+    id                     SERIAL PRIMARY KEY,
+    user_id                INTEGER NOT NULL REFERENCES users(id),
+    tipo_movimentacao      TEXT NOT NULL,
+    tipo_operacao          TEXT NOT NULL,
+    quantidade_creditos    INTEGER NOT NULL,
+    saldo_anterior         INTEGER NOT NULL,
+    saldo_posterior        INTEGER NOT NULL,
+    purchase_id            INTEGER REFERENCES purchases(id),
+    reservation_id         INTEGER REFERENCES reservations(id),
+    forma_pagamento        TEXT,
+    usuario_responsavel_id INTEGER REFERENCES users(id),
+    observacoes            TEXT,
+    criado_em              TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS payouts (
@@ -331,6 +373,7 @@ def _migrar_colunas_novas():
             conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS cep TEXT")
             conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS endereco_numero TEXT")
             conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS asaas_customer_id TEXT")
+            conn.execute("ALTER TABLE classes ADD COLUMN IF NOT EXISTS atribuido_em TIMESTAMP")
             conn.execute("ALTER TABLE classes ALTER COLUMN instrutor_resp_id DROP NOT NULL")
             conn.execute("ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS link_url TEXT")
         else:
@@ -343,6 +386,9 @@ def _migrar_colunas_novas():
                 conn.execute("ALTER TABLE users ADD COLUMN endereco_numero TEXT")
             if "asaas_customer_id" not in colunas:
                 conn.execute("ALTER TABLE users ADD COLUMN asaas_customer_id TEXT")
+            colunas_classes = [r["name"] for r in conn.execute("PRAGMA table_info(classes)").fetchall()]
+            if "atribuido_em" not in colunas_classes:
+                conn.execute("ALTER TABLE classes ADD COLUMN atribuido_em TIMESTAMP")
             colunas_nl = [r["name"] for r in conn.execute("PRAGMA table_info(newsletters)").fetchall()]
             if "link_url" not in colunas_nl:
                 conn.execute("ALTER TABLE newsletters ADD COLUMN link_url TEXT")

@@ -161,4 +161,7 @@ def atribuir_instrutor_escala(class_id, instrutor_id):
             raise TurmaError("Turma não encontrada.")
         if turma["status"] != "agendada":
             raise TurmaError("Esta turma já foi baixada/suspensa e não pode mais ser alterada pela Escala.")
-        conn.execute("UPDATE classes SET instrutor_resp_id = ? WHERE id = ?", (instrutor_id, class_id))
+        conn.execute(
+            "UPDATE classes SET instrutor_resp_id = ?, atribuido_em = CURRENT_TIMESTAMP WHERE id = ?",
+            (instrutor_id, class_id),
+        )

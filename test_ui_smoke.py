@@ -113,6 +113,8 @@ testar("perfil_page", "render", user_instrutor)
 testar("presenca_page", "render", user_instrutor)
 testar("dashboard_page", "render", user_gestor)
 testar("configuracoes_page", "render", user_gestor)
+testar("historico_creditos_page", "render", user_instrutor)
+testar("movimentacoes_page", "render", user_gestor)
 
 
 # Testa também a aba "Newsletter" (não é a aba padrão, então o teste acima não passa por ela)
@@ -193,6 +195,11 @@ try:
     with shell("/creditos", user_instrutor):
         pass
     print("OK   layout.shell(...)")
+    # também com um filho do submenu "Créditos" ativo (expande o submenu) e pro gestor,
+    # que tem o item extra "Movimentações"
+    with shell("/creditos/movimentacoes", user_gestor):
+        pass
+    print("OK   layout.shell(...) com submenu Créditos expandido (perfil gestor)")
 except Exception as e:
     erros.append(("layout", e))
     print(f"FALHOU layout.shell(...) -> {type(e).__name__}: {e}")
@@ -204,4 +211,4 @@ if erros:
         print(f" - {nome}: {e}")
     sys.exit(1)
 else:
-    print("Todas as 7 telas + layout carregaram sem erro com os dados de exemplo.")
+    print("Todas as 9 telas + layout carregaram sem erro com os dados de exemplo.")

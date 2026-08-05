@@ -8,6 +8,7 @@ from seed import seed_demo
 from theme import GLOBAL_CSS, TEAL, NAVY, TEAL_DARK, OK, DANGER, WARN
 from pwa import PWA_HEAD_HTML, FAVICON_DATA_URI
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
+import historico_creditos_page, movimentacoes_page
 import payments
 import newsletters
 from layout import shell
@@ -16,6 +17,11 @@ init_db()
 if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
     seed_demo()
 newsletters.seed_newsletters_iniciais()
+
+# Fotos do clube (ex: imagem de fundo da landing) — não é UI, é registro de
+# rota no FastAPI por baixo, então pode ficar no escopo do módulo mesmo
+# nesta versão do NiceGUI que restringe chamadas de ui.* no escopo global.
+app.add_static_files("/img", "static")
 
 
 def _aplicar_tema():
@@ -83,6 +89,29 @@ def pagina_comprar():
         comprar_page.render(app.storage.user)
 
 
+@ui.page("/creditos/historico")
+def pagina_historico_creditos():
+    _aplicar_tema()
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    with shell("/creditos/historico", app.storage.user):
+        historico_creditos_page.render(app.storage.user)
+
+
+@ui.page("/creditos/movimentacoes")
+def pagina_movimentacoes_creditos():
+    _aplicar_tema()
+    if not _logged_in():
+        ui.navigate.to("/")
+        return
+    if not _require_role("gestor"):
+        ui.navigate.to("/creditos")
+        return
+    with shell("/creditos/movimentacoes", app.storage.user):
+        movimentacoes_page.render(app.storage.user)
+
+
 @ui.page("/agenda")
 def pagina_agenda():
     _aplicar_tema()
@@ -109,7 +138,7 @@ def pagina_presenca():
     if not _logged_in():
         ui.navigate.to("/")
         return
-    if not _require_role("instrutor"):
+    if not _require_role("instrutor", "gestor"):
         ui.navigate.to("/creditos")
         return
     with shell("/presenca", app.storage.user):

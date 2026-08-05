@@ -43,7 +43,10 @@ def dar_baixa(class_id, status, presencas: dict, hoje=None):
             # devolve créditos de todos os inscritos com +7 dias, nenhum repasse é gerado
             for r in reservas:
                 if r["credit_id"] is not None:
-                    credits.devolver_credito(r["credit_id"], motivo_extensao=True, hoje=hoje)
+                    credits.devolver_credito(
+                        r["credit_id"], motivo_extensao=True, hoje=hoje,
+                        user_id=r["user_id"], reservation_id=r["id"],
+                    )
             conn.execute("UPDATE classes SET status = ? WHERE id = ?", (status, class_id))
             return {"status": status, "repasses": []}
 
@@ -92,6 +95,9 @@ def cancelar_turma_pelo_instrutor(class_id, hoje=None):
         ).fetchall()
         for r in reservas:
             if r["credit_id"] is not None:
-                credits.devolver_credito(r["credit_id"], motivo_extensao=True, hoje=hoje)
+                credits.devolver_credito(
+                    r["credit_id"], motivo_extensao=True, hoje=hoje,
+                    user_id=r["user_id"], reservation_id=r["id"],
+                )
             conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (r["id"],))
         conn.execute("UPDATE classes SET status = 'cancelada' WHERE id = ?", (class_id,))

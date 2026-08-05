@@ -11,7 +11,8 @@ import carousel
 DIAS_PT = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 
 
-def render(user):
+def render(user, hoje=None):
+    hoje = hoje or date.today()
     primeiro_nome = user["nome"].split()[0]
     ui.label(f"Bem-vindo de volta, {primeiro_nome}.").style(
         f"color:{NAVY}; font-size:22px; font-weight:800;"
@@ -23,6 +24,10 @@ def render(user):
             f"color:{TEAL_DARK}; font-size:13px; font-weight:700; margin-top:-12px;"
         )
 
+    if user["role"] == "instrutor":
+        section_title("Minhas Próximas Turmas")
+        _minhas_proximas_turmas(user, hoje)
+
     section_title("Minhas Remadas")
     _card_remadas(user)
 
@@ -33,6 +38,44 @@ def render(user):
 
     section_title("Histórico de remadas")
     _historico(user)
+
+
+MINHAS_TURMAS_LIMITE = 4
+
+
+def _minhas_proximas_turmas(user, hoje):
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT c.*, "
+            "  (SELECT COUNT(*) FROM reservations r WHERE r.class_id = c.id "
+            "     AND r.status IN ('confirmada','presente','faltou')) AS confirmados "
+            "FROM classes c "
+            "WHERE c.instrutor_resp_id = ? AND c.data >= ? AND c.status = 'agendada' "
+            "ORDER BY c.data, c.horario LIMIT ?",
+            (user["id"], hoje.isoformat(), MINHAS_TURMAS_LIMITE),
+        ).fetchall()
+
+    with ui.column().classes("canoa-card").style("gap:4px; width:100%;"):
+        if not rows:
+            ui.label("Nenhuma turma futura atribuída a você como instrutor responsável ainda.").style(
+                f"color:{TEXT_MUTED}; font-size:13px;"
+            )
+            return
+        for r in rows:
+            dia_semana = DIAS_PT[date.fromisoformat(str(r["data"])).weekday()]
+            with ui.row().style(
+                "justify-content:space-between; align-items:center; padding:8px 0; "
+                "border-bottom:1px solid #EEF1F3; width:100%; gap:8px; flex-wrap:wrap;"
+            ):
+                ui.label(f"{dia_semana}, {r['data']} \u00b7 {r['horario']} \u00b7 {r['tipo'].capitalize()}").style(
+                    f"color:{TEXT}; font-size:13px;"
+                )
+                ui.label(f"{r['confirmados']} aluno(s) reservado(s)").style(
+                    f"color:{TEAL_DARK}; font-size:12px; font-weight:700;"
+                )
+        ui.button("Ver Agenda de Turmas", on_click=lambda: ui.navigate.to("/agenda")).props(
+            "flat dense"
+        ).style(f"color:{TEAL_DARK}; font-weight:700; margin-top:4px; width:fit-content;")
 
 
 def _card_proxima_remada(user):

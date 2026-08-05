@@ -20,10 +20,11 @@ def render(user):
                 f"border:2px solid {TEAL};"
             )
 
-            def ao_enviar(e: events.UploadEventArguments):
+            async def ao_enviar(e: events.UploadEventArguments):
                 try:
                     from PIL import Image
-                    img = Image.open(e.content).convert("RGBA")
+                    dados_arquivo = await e.file.read()
+                    img = Image.open(io.BytesIO(dados_arquivo)).convert("RGBA")
                     img.thumbnail((AVATAR_MAX_PX, AVATAR_MAX_PX))
                     buf = io.BytesIO()
                     img.save(buf, format="PNG", optimize=True)

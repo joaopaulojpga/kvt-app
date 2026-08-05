@@ -55,6 +55,7 @@ fake_ui = FakeUiModule("ui")
 fake_ui.navigate = types.SimpleNamespace(to=lambda p: None)
 fake_app = types.SimpleNamespace(storage=types.SimpleNamespace(user={}))
 fake_app.post = lambda path: (lambda f: f)  # decorator do webhook
+fake_app.add_static_files = lambda *a, **k: None
 
 fake_nicegui = types.ModuleType("nicegui")
 fake_nicegui.ui = fake_ui

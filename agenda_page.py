@@ -56,17 +56,23 @@ def _turmas_do_mes(ano, mes):
 
 def render(user, hoje=None):
     hoje = hoje or date.today()
+    saldo_label = None
     with ui.row().style("width:100%; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;"):
         ui.label("Agenda de Turmas").classes("kv-titulo")
         if user["role"] == "aluno":
-            saldo = credits.saldo_disponivel(user["id"])
             with ui.column().style(
                 "background:white; border:1px solid #C9D3BE; border-radius:12px; "
                 "padding:4px 18px; align-items:center; gap:0;"
             ):
                 ui.label("Créditos").style(f"color:{TEXT_MUTED}; font-size:10px; font-weight:700;")
-                ui.label(str(saldo)).style(f"color:{NAVY}; font-size:22px; font-weight:800; line-height:1.1;")
+                saldo_label = ui.label(str(credits.saldo_disponivel(user["id"]))).style(
+                    f"color:{NAVY}; font-size:22px; font-weight:800; line-height:1.1;"
+                )
                 ui.label("remadas").style(f"color:{TEXT_MUTED}; font-size:10px;")
+
+    def atualizar_saldo():
+        if saldo_label is not None:
+            saldo_label.set_text(str(credits.saldo_disponivel(user["id"])))
 
     estado = {"modo": "proximas", "ano": hoje.year, "mes": hoje.month}
     corpo = ui.column().style("width:100%; gap:12px;")
@@ -85,6 +91,7 @@ def render(user, hoje=None):
         redesenhar()
 
     def redesenhar():
+        atualizar_saldo()
         corpo.clear()
         with corpo:
             with ui.row().style("gap:8px; flex-wrap:wrap; align-items:center;"):
@@ -283,7 +290,7 @@ def _card_turma(t, user, hoje, on_done):
             badge(t["status"].replace("_", " ").upper(), "muted")
         elif ja_reservado:
             badge(
-                "Aguardando aprovação" if minha_reserva["status"] == "pendente_aprovacao" else "Você está inscrito(a)",
+                "Aguardando aprovação" if minha_reserva["status"] == "pendente_aprovacao" else "Reserva efetuada com sucesso",
                 "warn" if minha_reserva["status"] == "pendente_aprovacao" else "ok",
             )
 
@@ -293,7 +300,10 @@ def _card_turma(t, user, hoje, on_done):
             try:
                 resultado = reservations.reservar(user["id"], class_id)
                 if resultado["status"] == "confirmada":
-                    booking_modal.mostrar_confirmacao(t["data"], t["horario"])
+                    # on_done só dispara quando o modal fechar — se disparasse
+                    # na hora, reconstruiria a grade (corpo.clear()) e
+                    # destruiria o próprio modal que acabou de abrir.
+                    booking_modal.mostrar_confirmacao(t["data"], t["horario"], on_close=on_done)
                 else:
                     ui.notify(
                         "Turma no limite de vagas. Solicitação enviada para aprovação "
@@ -308,7 +318,7 @@ def _card_turma(t, user, hoje, on_done):
                             instrutor["email"], instrutor["nome"], user["nome"],
                             t["data"], t["horario"],
                         )
-                on_done()
+                    on_done()
             except ReservaError as e:
                 msg.set_text(str(e))
 

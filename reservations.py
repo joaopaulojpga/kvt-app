@@ -101,7 +101,10 @@ def cancelar_reserva(reservation_id, agora=None):
             )
         if res["credit_id"] is not None:
             # devolve o crédito com a validade original (não é suspensão/cancelamento do instrutor)
-            credits.devolver_credito(res["credit_id"], motivo_extensao=False)
+            credits.devolver_credito(
+                res["credit_id"], motivo_extensao=False,
+                user_id=res["user_id"], reservation_id=res["id"],
+            )
         conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
 
 
@@ -121,7 +124,10 @@ def remover_aluno(reservation_id):
         if res["status"] == "cancelada":
             raise ReservaError("Esta reserva já está cancelada.")
         if res["credit_id"] is not None:
-            credits.devolver_credito(res["credit_id"], motivo_extensao=False)
+            credits.devolver_credito(
+                res["credit_id"], motivo_extensao=False,
+                user_id=res["user_id"], reservation_id=res["id"],
+            )
         conn.execute("UPDATE reservations SET status = 'cancelada' WHERE id = ?", (reservation_id,))
 
 

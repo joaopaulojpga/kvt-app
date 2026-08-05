@@ -17,11 +17,17 @@ if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
     seed_demo()
 newsletters.seed_newsletters_iniciais()
 
-# Paleta de marca do Quasar (afeta TODOS os componentes nativos — foco de
-# input, indicador de aba ativa, checkbox, switch, spinner, notify etc.).
-# Sem isso, esses elementos usam o azul padrão do Quasar, destoando da
-# identidade verde do clube em qualquer tela com formulário.
-ui.colors(primary=TEAL, secondary=NAVY, accent=TEAL_DARK, positive=OK, negative=DANGER, warning=WARN)
+
+def _aplicar_tema():
+    """
+    Injeta o CSS global + favicon PWA e define a paleta de marca do Quasar
+    (afeta componentes nativos: foco de input, aba ativa, checkbox, switch,
+    spinner, notify etc.). Chamado dentro de cada @ui.page — versões mais
+    recentes do NiceGUI (3.x) não permitem chamadas de UI no escopo global
+    do módulo quando o app usa @ui.page.
+    """
+    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    ui.colors(primary=TEAL, secondary=NAVY, accent=TEAL_DARK, positive=OK, negative=DANGER, warning=WARN)
 
 
 @app.post("/webhook/mercadopago")
@@ -51,7 +57,7 @@ def _require_role(*roles):
 
 @ui.page("/")
 def pagina_home():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if _logged_in():
         ui.navigate.to("/creditos")
         return
@@ -60,7 +66,7 @@ def pagina_home():
 
 @ui.page("/creditos")
 def pagina_creditos():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -70,7 +76,7 @@ def pagina_creditos():
 
 @ui.page("/comprar")
 def pagina_comprar():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -80,7 +86,7 @@ def pagina_comprar():
 
 @ui.page("/agenda")
 def pagina_agenda():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -90,7 +96,7 @@ def pagina_agenda():
 
 @ui.page("/perfil")
 def pagina_perfil():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -100,7 +106,7 @@ def pagina_perfil():
 
 @ui.page("/presenca")
 def pagina_presenca():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -113,7 +119,7 @@ def pagina_presenca():
 
 @ui.page("/dashboard")
 def pagina_dashboard():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
@@ -126,7 +132,7 @@ def pagina_dashboard():
 
 @ui.page("/configuracoes")
 def pagina_configuracoes():
-    ui.add_head_html(f"<style>{GLOBAL_CSS}</style>{PWA_HEAD_HTML}")
+    _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return

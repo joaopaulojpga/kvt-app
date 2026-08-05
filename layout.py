@@ -4,7 +4,6 @@ from nicegui import ui, app
 from theme import NAVY, TEAL, TEAL_DARK, BG, TEXT, TEXT_MUTED, SIDEBAR_W, SIDEBAR_W_COLLAPSED, APP_NAME
 from logo_data import LOGO_KALANI_DATA_URI
 import auth
-import credits
 
 MENU_BASE = [("Home", "/creditos", "home"), ("Agenda de Turmas", "/agenda", "event")]
 MENU_INSTRUTOR = [("Lista de Presença", "/presenca", "fact_check")]
@@ -135,16 +134,6 @@ def shell(active_path, user):
                 "width:100%; background:white; "
                 "padding:14px 32px; align-items:center; justify-content:flex-end; gap:16px;"
             ).classes("kv-topbar"):
-                if user["role"] == "aluno":
-                    saldo = credits.saldo_disponivel(user["id"])
-                    with ui.column().style(
-                        "background:#F4F8F0; border:1px solid #C9D3BE; border-radius:12px; "
-                        "padding:4px 18px; align-items:center; gap:0;"
-                    ):
-                        ui.label("Créditos").style(f"color:{TEXT_MUTED}; font-size:10px; font-weight:700;")
-                        ui.label(str(saldo)).style(f"color:{NAVY}; font-size:20px; font-weight:800; line-height:1.1;")
-                        ui.label("remadas").style(f"color:{TEXT_MUTED}; font-size:10px;")
-
                 dados = auth.get_usuario(user["id"])
                 foto = dados.get("foto_url") if dados else None
                 with ui.row().style("align-items:center; gap:10px;"):

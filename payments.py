@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Integração com o Asaas (Checkout Asaas).
+Integração com o Asaas — checkout transparente (Pix com QR code + cartão
+via formulário próprio, ambos dentro da nossa página, sem redirecionar
+nem abrir nova aba).
 
-Fluxo: criamos um "checkout" (equivalente à antiga preferência do Mercado
-Pago) e mostramos o link retornado dentro de um iframe, na própria página
-de compra — sem abrir nova aba nem forçar redirecionamento. A confirmação
-de pagamento chega via webhook (`processar_webhook`), que é a fonte
-confiável — o retorno de callback (successUrl) é só uma conveniência de
-UX, nunca usado sozinho para liberar o crédito.
+Fluxo: criamos a cobrança direto na API (`/v3/payments`) e mostramos o
+QR code do Pix (ou processamos o cartão) na hora. A confirmação de
+pagamento definitiva chega via webhook (`processar_webhook`), que é a
+fonte confiável — mesmo a resposta de sucesso da cobrança com cartão
+não credita nada sozinha, só o webhook credita de fato.
 
 Autenticação do Asaas: header `access_token` (não usa `Authorization:
 Bearer`, diferente da maioria das APIs REST — atenção ao integrar).
@@ -17,6 +18,7 @@ import os
 import json
 import urllib.request
 import urllib.error
+from datetime import date
 
 from db import db, insert_returning_id
 import credits
@@ -45,6 +47,19 @@ class PagamentoError(Exception):
 
 def _somente_digitos(texto):
     return re.sub(r"\D", "", texto or "")
+
+
+def _limpar_telefone(texto):
+    """
+    Limpa o telefone para o formato que o Asaas espera (DDD + número,
+    sem código do país). Se sobrar o "55" do Brasil na frente (ex:
+    alguém salvou "+55 21 98765-4321"), removemos — do contrário o
+    Asaas recusa por excesso de dígitos.
+    """
+    digitos = _somente_digitos(texto)
+    if len(digitos) in (12, 13) and digitos.startswith("55"):
+        digitos = digitos[2:]
+    return digitos
 
 
 def _buscar_endereco_via_cep(cep):
@@ -96,67 +111,106 @@ def _request(method, path, payload=None):
         raise PagamentoError(f"Não foi possível conectar ao Asaas: {e}") from e
 
 
-def criar_checkout(purchase_id, titulo, valor_centavos, dados_comprador):
+def obter_ou_criar_cliente(dados_comprador):
     """
-    Cria um Checkout Asaas (equivalente à preferência do Mercado Pago) e
-    retorna o link hospedado para o pagador concluir Pix ou cartão.
-    `dados_comprador` é o dict de auth.get_usuario(...) do comprador.
-
-    Cartão de crédito exige endereço completo (antifraude); Pix não. Se o
-    aluno ainda não preencheu CEP + número em "Meu Cadastro", oferecemos
-    só Pix — evita travar quem só quer pagar por Pix só por faltar um
-    dado que ele nem vai usar.
+    Retorna o ID do cliente no Asaas (cus_...), criando-o na primeira vez
+    e reaproveitando (guardado em users.asaas_customer_id) nas próximas
+    compras — evita criar um cliente duplicado a cada compra.
     """
-    if not APP_BASE_URL:
-        raise PagamentoError(
-            "Variável APP_BASE_URL não configurada — necessária para o Asaas "
-            "saber para onde redirecionar e avisar sobre o pagamento."
-        )
+    if dados_comprador.get("asaas_customer_id"):
+        return dados_comprador["asaas_customer_id"]
 
-    billing_types = ["PIX"]
-    customer_data = {
+    payload = {
         "name": dados_comprador["nome"],
         "cpfCnpj": _somente_digitos(dados_comprador.get("cpf")),
         "email": dados_comprador["email"],
-        "phone": _somente_digitos(dados_comprador.get("celular")),
+        "phone": _limpar_telefone(dados_comprador.get("celular")),
+        "externalReference": str(dados_comprador["id"]),
+    }
+    resp = _request("POST", "/customers", payload)
+    if "id" not in resp:
+        raise PagamentoError(f"Resposta inesperada do Asaas ao criar cliente: {resp}")
+    with db() as conn:
+        conn.execute("UPDATE users SET asaas_customer_id = ? WHERE id = ?", (resp["id"], dados_comprador["id"]))
+    return resp["id"]
+
+
+def criar_cobranca_pix(purchase_id, valor_centavos, dados_comprador):
+    """Cria a cobrança Pix e já retorna o QR code (imagem + copia-e-cola) pra exibir na hora."""
+    customer_id = obter_ou_criar_cliente(dados_comprador)
+    payload = {
+        "customer": customer_id,
+        "billingType": "PIX",
+        "value": round(valor_centavos / 100, 2),
+        "dueDate": date.today().isoformat(),
+        "externalReference": str(purchase_id),
+    }
+    resp = _request("POST", "/payments", payload)
+    payment_id = resp.get("id")
+    if not payment_id:
+        raise PagamentoError(f"Resposta inesperada do Asaas ao criar cobrança Pix: {resp}")
+
+    qr = _request("GET", f"/payments/{payment_id}/pixQrCode")
+    if not qr.get("encodedImage") or not qr.get("payload"):
+        raise PagamentoError(f"Resposta inesperada do Asaas ao gerar o QR code: {qr}")
+    return {
+        "payment_id": payment_id,
+        "qr_image_base64": qr["encodedImage"],
+        "copia_cola": qr["payload"],
+        "expiracao": qr.get("expirationDate"),
     }
 
+
+def criar_cobranca_cartao(purchase_id, valor_centavos, dados_comprador, cartao):
+    """
+    Cobra o cartão direto (checkout transparente): os dados passam pelo
+    nosso servidor só de repasse — via HTTPS, sem nunca serem salvos —
+    e vão direto pra API do Asaas, que é quem processa e guarda de
+    verdade (é PCI-DSS certificado). `cartao` é um dict com holderName,
+    number, expiryMonth, expiryYear, ccv (vindos do formulário).
+
+    Exige CEP + número já preenchidos em "Meu Cadastro" (antifraude de
+    cartão) — a tela de compra só oferece essa opção quando o aluno já
+    tem esses dados.
+    """
     cep = dados_comprador.get("cep")
     numero = dados_comprador.get("endereco_numero")
-    if cep and numero:
-        endereco = _buscar_endereco_via_cep(cep)
-        if endereco:
-            billing_types.append("CREDIT_CARD")
-            customer_data.update({
-                "postalCode": _somente_digitos(cep),
-                "addressNumber": numero,
-                "address": endereco.get("logradouro") or endereco.get("bairro") or "Endereço não informado",
-                "province": endereco.get("bairro") or endereco.get("localidade") or "Centro",
-            })
-            if endereco.get("ibge"):
-                customer_data["city"] = int(endereco["ibge"])
+    if not (cep and numero):
+        raise PagamentoError("Complete CEP e número em \u201cMeu Cadastro\u201d antes de pagar com cartão.")
+    endereco = _buscar_endereco_via_cep(cep)
+    if not endereco:
+        raise PagamentoError("Não foi possível validar o CEP cadastrado. Confira em \u201cMeu Cadastro\u201d.")
 
+    customer_id = obter_ou_criar_cliente(dados_comprador)
     payload = {
-        "billingTypes": billing_types,
-        "chargeTypes": ["DETACHED"],
-        "minutesToExpire": 30,
+        "customer": customer_id,
+        "billingType": "CREDIT_CARD",
+        "value": round(valor_centavos / 100, 2),
+        "dueDate": date.today().isoformat(),
         "externalReference": str(purchase_id),
-        "callback": {
-            "successUrl": f"{APP_BASE_URL}/comprar",
-            "cancelUrl": f"{APP_BASE_URL}/comprar",
-            "expiredUrl": f"{APP_BASE_URL}/comprar",
+        "creditCard": {
+            "holderName": cartao["holderName"],
+            "number": cartao["number"],
+            "expiryMonth": cartao["expiryMonth"],
+            "expiryYear": cartao["expiryYear"],
+            "ccv": cartao["ccv"],
         },
-        "items": [{
-            "name": titulo,
-            "quantity": 1,
-            "value": round(valor_centavos / 100, 2),
-        }],
-        "customerData": customer_data,
+        "creditCardHolderInfo": {
+            "name": dados_comprador["nome"],
+            "email": dados_comprador["email"],
+            "cpfCnpj": _somente_digitos(dados_comprador.get("cpf")),
+            "postalCode": _somente_digitos(cep),
+            "addressNumber": numero,
+            "phone": _limpar_telefone(dados_comprador.get("celular")),
+        },
     }
-    resp = _request("POST", "/checkouts", payload)
-    if "link" not in resp:
-        raise PagamentoError(f"Resposta inesperada do Asaas ao criar checkout: {resp}")
-    return resp["link"]
+    return _request("POST", "/payments", payload)
+
+
+def consultar_status_compra(purchase_id):
+    with db() as conn:
+        row = conn.execute("SELECT status FROM purchases WHERE id = ?", (purchase_id,)).fetchone()
+    return row["status"] if row else None
 
 
 def consultar_pagamento(payment_id):

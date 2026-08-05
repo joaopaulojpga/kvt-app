@@ -12,6 +12,7 @@ os.environ["CANOA_DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test_pagamento_a
 from db import init_db, db  # noqa: E402
 from auth import cadastrar_usuario  # noqa: E402
 import payments  # noqa: E402
+from payments import PagamentoError  # noqa: E402
 import credits  # noqa: E402
 
 init_db()
@@ -78,46 +79,93 @@ print("OK — reenvio do mesmo evento (idempotência) não duplica o crédito.")
 payments.consultar_pagamento = _original_consultar
 payments.ASAAS_WEBHOOK_TOKEN = None
 
-# ---- criar_checkout: sem CEP/número -> só Pix, sem campos de endereço ----
-payments.APP_BASE_URL = "https://kvt-app.onrender.com"
+# ---- obter_ou_criar_cliente: cria na 1ª vez, reaproveita se já tiver id ----
 _payload_capturado = {}
 
 
-def _stub_request(method, path, payload=None):
+def _stub_request_cliente(method, path, payload=None):
     _payload_capturado["method"], _payload_capturado["path"], _payload_capturado["payload"] = method, path, payload
-    return {"link": "https://checkout.asaas.com/fake-link"}
+    return {"id": "cus_fake123"}
 
 
-payments._request = _stub_request
+payments._request = _stub_request_cliente
+dados_sem_asaas_id = {
+    "id": aluno, "nome": "Fernanda Reis", "cpf": "111.222.333-44", "email": "f@t.com",
+    "celular": "+55 (21) 90000-9999",
+}
+cid = payments.obter_ou_criar_cliente(dados_sem_asaas_id)
+approx(cid, "cus_fake123")
+approx(_payload_capturado["payload"]["cpfCnpj"], "11122233344", "CPF deveria vir só com dígitos")
+approx(_payload_capturado["payload"]["phone"], "21900009999", "telefone deveria remover o +55 do país")
+with db() as conn:
+    salvo = conn.execute("SELECT asaas_customer_id FROM users WHERE id = ?", (aluno,)).fetchone()
+approx(salvo["asaas_customer_id"], "cus_fake123", "id do cliente deveria ficar salvo pra reaproveitar depois")
+print("OK — obter_ou_criar_cliente cria o cliente, limpa CPF/telefone (removendo +55) e salva o id.")
 
-dados_sem_endereco = {"nome": "Fernanda Reis", "cpf": "111.222.333-44", "email": "f@t.com", "celular": "(21) 90000-9999"}
-link = payments.criar_checkout(purchase_id, "Pacote 4 remadas", 10500, dados_sem_endereco)
-approx(link, "https://checkout.asaas.com/fake-link")
-approx(_payload_capturado["payload"]["billingTypes"], ["PIX"], "sem CEP/número deveria oferecer só Pix")
-assert "postalCode" not in _payload_capturado["payload"]["customerData"], "não deveria mandar endereço sem CEP"
-approx(_payload_capturado["payload"]["customerData"]["cpfCnpj"], "11122233344", "CPF deveria vir só com dígitos")
-approx(_payload_capturado["payload"]["customerData"]["phone"], "21900009999", "telefone deveria vir só com dígitos")
-print("OK — criar_checkout sem CEP/número oferece só Pix e limpa CPF/telefone corretamente.")
+dados_com_asaas_id = dict(dados_sem_asaas_id, asaas_customer_id="cus_ja_existia")
+_payload_capturado.clear()
+cid2 = payments.obter_ou_criar_cliente(dados_com_asaas_id)
+approx(cid2, "cus_ja_existia")
+approx(_payload_capturado, {}, "não deveria chamar a API se o cliente já existe")
+print("OK — obter_ou_criar_cliente reaproveita o id já salvo, sem chamar a API de novo.")
 
-# ---- criar_checkout: com CEP/número + ViaCEP OK -> Pix + Cartão, endereço preenchido ----
+# ---- criar_cobranca_pix: cria a cobrança e busca o QR code ----
+def _stub_request_pix(method, path, payload=None):
+    if path == "/payments":
+        return {"id": "pay_pix_1"}
+    if path == "/payments/pay_pix_1/pixQrCode":
+        return {"encodedImage": "BASE64FAKE", "payload": "00020126...copiaecola...6304ABCD", "expirationDate": "2026-08-05 12:00:00"}
+    raise AssertionError(f"chamada inesperada: {path}")
+
+
+payments._request = _stub_request_pix
+pix = payments.criar_cobranca_pix(purchase_id, 10500, dados_com_asaas_id)
+approx(pix["payment_id"], "pay_pix_1")
+approx(pix["qr_image_base64"], "BASE64FAKE")
+approx(pix["copia_cola"], "00020126...copiaecola...6304ABCD")
+print("OK — criar_cobranca_pix cria a cobrança e retorna a imagem + copia-e-cola do QR code.")
+
+# ---- criar_cobranca_cartao: sem CEP/número -> bloqueia com mensagem clara ----
+try:
+    payments.criar_cobranca_cartao(purchase_id, 10500, dados_com_asaas_id, {
+        "holderName": "F R", "number": "4111111111111111", "expiryMonth": "12", "expiryYear": "2030", "ccv": "123",
+    })
+    raise AssertionError("deveria ter bloqueado por falta de CEP/número")
+except PagamentoError as e:
+    assert "Meu Cadastro" in str(e)
+    print(f"OK — cartão sem CEP/número é bloqueado com mensagem clara: {e}")
+
+# ---- criar_cobranca_cartao: com CEP/número + ViaCEP OK -> cobra normalmente ----
 payments._buscar_endereco_via_cep = lambda cep: {
     "logradouro": "Rua das Palmeiras", "bairro": "Centro", "localidade": "Campos dos Goytacazes", "ibge": "3301009",
 }
-dados_com_endereco = dict(dados_sem_endereco, cep="28035-000", endereco_numero="123")
-payments.criar_checkout(purchase_id, "Pacote 4 remadas", 10500, dados_com_endereco)
-pl = _payload_capturado["payload"]
-approx(pl["billingTypes"], ["PIX", "CREDIT_CARD"], "com CEP/número deveria liberar cartão também")
-approx(pl["customerData"]["postalCode"], "28035000")
-approx(pl["customerData"]["addressNumber"], "123")
-approx(pl["customerData"]["address"], "Rua das Palmeiras")
-approx(pl["customerData"]["province"], "Centro")
-approx(pl["customerData"]["city"], 3301009)
-print("OK — criar_checkout com CEP/número libera Pix + Cartão e preenche endereço via ViaCEP.")
+dados_com_endereco = dict(dados_com_asaas_id, cep="28035-000", endereco_numero="123")
 
-# ---- criar_checkout: CEP/número presentes mas ViaCEP falha -> cai pra só Pix (não quebra) ----
+
+def _stub_request_cartao(method, path, payload=None):
+    _payload_capturado["payload"] = payload
+    return {"id": "pay_card_1", "status": "CONFIRMED"}
+
+
+payments._request = _stub_request_cartao
+resp = payments.criar_cobranca_cartao(purchase_id, 10500, dados_com_endereco, {
+    "holderName": "Fernanda Reis", "number": "4111111111111111", "expiryMonth": "12", "expiryYear": "2030", "ccv": "123",
+})
+approx(resp["status"], "CONFIRMED")
+pl = _payload_capturado["payload"]
+approx(pl["creditCardHolderInfo"]["postalCode"], "28035000")
+approx(pl["creditCardHolderInfo"]["addressNumber"], "123")
+approx(pl["creditCard"]["number"], "4111111111111111")
+print("OK — criar_cobranca_cartao com CEP/número preenchido cobra normalmente, incluindo endereço.")
+
+# ---- criar_cobranca_cartao: CEP/número presentes mas ViaCEP falha -> bloqueia (não deixa passar sem validar) ----
 payments._buscar_endereco_via_cep = lambda cep: None
-payments.criar_checkout(purchase_id, "Pacote 4 remadas", 10500, dados_com_endereco)
-approx(_payload_capturado["payload"]["billingTypes"], ["PIX"], "se o ViaCEP falhar, deveria cair pra só Pix")
-print("OK — falha no ViaCEP não trava a compra, só remove a opção de cartão.")
+try:
+    payments.criar_cobranca_cartao(purchase_id, 10500, dados_com_endereco, {
+        "holderName": "F R", "number": "4111111111111111", "expiryMonth": "12", "expiryYear": "2030", "ccv": "123",
+    })
+    raise AssertionError("deveria ter bloqueado por CEP inválido")
+except PagamentoError as e:
+    print(f"OK — falha do ViaCEP ao cobrar cartão é tratada com mensagem clara: {e}")
 
 print("\nTodos os testes de pagamento (Asaas) passaram.")

@@ -18,11 +18,6 @@ if os.environ.get("CANOA_SEED_DEMO", "1") == "1":
     seed_demo()
 newsletters.seed_newsletters_iniciais()
 
-# Fotos do clube (ex: imagem de fundo da landing) — não é UI, é registro de
-# rota no FastAPI por baixo, então pode ficar no escopo do módulo mesmo
-# nesta versão do NiceGUI que restringe chamadas de ui.* no escopo global.
-app.add_static_files("/img", "static")
-
 
 def _aplicar_tema():
     """

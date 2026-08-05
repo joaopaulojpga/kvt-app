@@ -16,11 +16,20 @@ PLANOS = {
 
 def render(user):
     page_title("Comprar Remadas")
+    dados_user = auth.get_usuario(user["id"])
+    tem_endereco = bool(dados_user.get("cep") and dados_user.get("endereco_numero"))
+
     ui.label(
         "Ao clicar em \"Comprar\", a tela de pagamento do Asaas abre aqui mesmo "
-        "(Pix ou cartão). Suas remadas aparecem em \"Minhas Remadas\" assim que "
-        "o pagamento for aprovado."
+        f"({'Pix ou cartão' if tem_endereco else 'Pix'}). Suas remadas aparecem em "
+        "\"Minhas Remadas\" assim que o pagamento for aprovado."
     ).style(f"color:{TEXT_MUTED}; font-size:12.5px; max-width:560px;")
+
+    if not tem_endereco:
+        ui.label(
+            "Quer pagar com cartão de crédito? Preencha CEP e número em "
+            "\"Meu Cadastro\" — por enquanto, só Pix está disponível pra você."
+        ).style(f"color:{TEAL_DARK}; font-size:11.5px; max-width:560px;")
 
     msg = ui.label("")
 

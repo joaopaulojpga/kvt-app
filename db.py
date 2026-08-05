@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS users (
     instagram       TEXT,
     foto_url        TEXT,
     data_nascimento DATE,
+    cep             TEXT,
+    endereco_numero TEXT,
     role            TEXT NOT NULL DEFAULT 'aluno',
     ativo           INTEGER NOT NULL DEFAULT 1,
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -146,6 +148,8 @@ CREATE TABLE IF NOT EXISTS users (
     instagram       TEXT,
     foto_url        TEXT,
     data_nascimento DATE,
+    cep             TEXT,
+    endereco_numero TEXT,
     role            TEXT NOT NULL DEFAULT 'aluno',
     ativo           INTEGER NOT NULL DEFAULT 1,
     criado_em       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -322,12 +326,18 @@ def _migrar_colunas_novas():
     with db() as conn:
         if IS_POSTGRES:
             conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS data_nascimento DATE")
+            conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS cep TEXT")
+            conn.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS endereco_numero TEXT")
             conn.execute("ALTER TABLE classes ALTER COLUMN instrutor_resp_id DROP NOT NULL")
             conn.execute("ALTER TABLE newsletters ADD COLUMN IF NOT EXISTS link_url TEXT")
         else:
             colunas = [r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
             if "data_nascimento" not in colunas:
                 conn.execute("ALTER TABLE users ADD COLUMN data_nascimento DATE")
+            if "cep" not in colunas:
+                conn.execute("ALTER TABLE users ADD COLUMN cep TEXT")
+            if "endereco_numero" not in colunas:
+                conn.execute("ALTER TABLE users ADD COLUMN endereco_numero TEXT")
             colunas_nl = [r["name"] for r in conn.execute("PRAGMA table_info(newsletters)").fetchall()]
             if "link_url" not in colunas_nl:
                 conn.execute("ALTER TABLE newsletters ADD COLUMN link_url TEXT")

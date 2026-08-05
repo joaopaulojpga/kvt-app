@@ -78,4 +78,46 @@ print("OK — reenvio do mesmo evento (idempotência) não duplica o crédito.")
 payments.consultar_pagamento = _original_consultar
 payments.ASAAS_WEBHOOK_TOKEN = None
 
+# ---- criar_checkout: sem CEP/número -> só Pix, sem campos de endereço ----
+payments.APP_BASE_URL = "https://kvt-app.onrender.com"
+_payload_capturado = {}
+
+
+def _stub_request(method, path, payload=None):
+    _payload_capturado["method"], _payload_capturado["path"], _payload_capturado["payload"] = method, path, payload
+    return {"link": "https://checkout.asaas.com/fake-link"}
+
+
+payments._request = _stub_request
+
+dados_sem_endereco = {"nome": "Fernanda Reis", "cpf": "111.222.333-44", "email": "f@t.com", "celular": "(21) 90000-9999"}
+link = payments.criar_checkout(purchase_id, "Pacote 4 remadas", 10500, dados_sem_endereco)
+approx(link, "https://checkout.asaas.com/fake-link")
+approx(_payload_capturado["payload"]["billingTypes"], ["PIX"], "sem CEP/número deveria oferecer só Pix")
+assert "postalCode" not in _payload_capturado["payload"]["customerData"], "não deveria mandar endereço sem CEP"
+approx(_payload_capturado["payload"]["customerData"]["cpfCnpj"], "11122233344", "CPF deveria vir só com dígitos")
+approx(_payload_capturado["payload"]["customerData"]["phone"], "21900009999", "telefone deveria vir só com dígitos")
+print("OK — criar_checkout sem CEP/número oferece só Pix e limpa CPF/telefone corretamente.")
+
+# ---- criar_checkout: com CEP/número + ViaCEP OK -> Pix + Cartão, endereço preenchido ----
+payments._buscar_endereco_via_cep = lambda cep: {
+    "logradouro": "Rua das Palmeiras", "bairro": "Centro", "localidade": "Campos dos Goytacazes", "ibge": "3301009",
+}
+dados_com_endereco = dict(dados_sem_endereco, cep="28035-000", endereco_numero="123")
+payments.criar_checkout(purchase_id, "Pacote 4 remadas", 10500, dados_com_endereco)
+pl = _payload_capturado["payload"]
+approx(pl["billingTypes"], ["PIX", "CREDIT_CARD"], "com CEP/número deveria liberar cartão também")
+approx(pl["customerData"]["postalCode"], "28035000")
+approx(pl["customerData"]["addressNumber"], "123")
+approx(pl["customerData"]["address"], "Rua das Palmeiras")
+approx(pl["customerData"]["province"], "Centro")
+approx(pl["customerData"]["city"], 3301009)
+print("OK — criar_checkout com CEP/número libera Pix + Cartão e preenche endereço via ViaCEP.")
+
+# ---- criar_checkout: CEP/número presentes mas ViaCEP falha -> cai pra só Pix (não quebra) ----
+payments._buscar_endereco_via_cep = lambda cep: None
+payments.criar_checkout(purchase_id, "Pacote 4 remadas", 10500, dados_com_endereco)
+approx(_payload_capturado["payload"]["billingTypes"], ["PIX"], "se o ViaCEP falhar, deveria cair pra só Pix")
+print("OK — falha no ViaCEP não trava a compra, só remove a opção de cartão.")
+
 print("\nTodos os testes de pagamento (Asaas) passaram.")

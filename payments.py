@@ -12,6 +12,7 @@ UX, nunca usado sozinho para liberar o crédito.
 Autenticação do Asaas: header `access_token` (não usa `Authorization:
 Bearer`, diferente da maioria das APIs REST — atenção ao integrar).
 """
+import re
 import os
 import json
 import urllib.request
@@ -40,6 +41,35 @@ EVENTOS_PAGO = {"PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"}
 
 class PagamentoError(Exception):
     pass
+
+
+def _somente_digitos(texto):
+    return re.sub(r"\D", "", texto or "")
+
+
+def _buscar_endereco_via_cep(cep):
+    """
+    Consulta o ViaCEP (serviço público, sem autenticação) para preencher
+    logradouro/bairro/cidade a partir do CEP. O Asaas exige endereço
+    completo (não só o CEP) para liberar cobrança com cartão de crédito
+    — pedimos ao aluno só o CEP + número em 'Meu Cadastro' e completamos
+    o resto aqui, pra não forçar todo mundo a digitar endereço na mão.
+    """
+    cep_limpo = _somente_digitos(cep)
+    if len(cep_limpo) != 8:
+        return None
+    try:
+        req = urllib.request.Request(
+            f"https://viacep.com.br/ws/{cep_limpo}/json/",
+            headers={"User-Agent": "KalaniVaaTeam/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            dados = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
+        return None
+    if dados.get("erro"):
+        return None
+    return dados
 
 
 def _request(method, path, payload=None):
@@ -71,14 +101,43 @@ def criar_checkout(purchase_id, titulo, valor_centavos, dados_comprador):
     Cria um Checkout Asaas (equivalente à preferência do Mercado Pago) e
     retorna o link hospedado para o pagador concluir Pix ou cartão.
     `dados_comprador` é o dict de auth.get_usuario(...) do comprador.
+
+    Cartão de crédito exige endereço completo (antifraude); Pix não. Se o
+    aluno ainda não preencheu CEP + número em "Meu Cadastro", oferecemos
+    só Pix — evita travar quem só quer pagar por Pix só por faltar um
+    dado que ele nem vai usar.
     """
     if not APP_BASE_URL:
         raise PagamentoError(
             "Variável APP_BASE_URL não configurada — necessária para o Asaas "
             "saber para onde redirecionar e avisar sobre o pagamento."
         )
+
+    billing_types = ["PIX"]
+    customer_data = {
+        "name": dados_comprador["nome"],
+        "cpfCnpj": _somente_digitos(dados_comprador.get("cpf")),
+        "email": dados_comprador["email"],
+        "phone": _somente_digitos(dados_comprador.get("celular")),
+    }
+
+    cep = dados_comprador.get("cep")
+    numero = dados_comprador.get("endereco_numero")
+    if cep and numero:
+        endereco = _buscar_endereco_via_cep(cep)
+        if endereco:
+            billing_types.append("CREDIT_CARD")
+            customer_data.update({
+                "postalCode": _somente_digitos(cep),
+                "addressNumber": numero,
+                "address": endereco.get("logradouro") or endereco.get("bairro") or "Endereço não informado",
+                "province": endereco.get("bairro") or endereco.get("localidade") or "Centro",
+            })
+            if endereco.get("ibge"):
+                customer_data["city"] = int(endereco["ibge"])
+
     payload = {
-        "billingTypes": ["PIX", "CREDIT_CARD"],
+        "billingTypes": billing_types,
         "chargeTypes": ["DETACHED"],
         "minutesToExpire": 30,
         "externalReference": str(purchase_id),
@@ -92,13 +151,7 @@ def criar_checkout(purchase_id, titulo, valor_centavos, dados_comprador):
             "quantity": 1,
             "value": round(valor_centavos / 100, 2),
         }],
-        "customerData": {
-            "name": dados_comprador["nome"],
-            "cpfCnpj": (dados_comprador.get("cpf") or "").replace(".", "").replace("-", ""),
-            "email": dados_comprador["email"],
-            "phone": (dados_comprador.get("celular") or "").replace("(", "").replace(")", "")
-                                                              .replace("-", "").replace(" ", ""),
-        },
+        "customerData": customer_data,
     }
     resp = _request("POST", "/checkouts", payload)
     if "link" not in resp:

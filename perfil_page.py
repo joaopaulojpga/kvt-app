@@ -53,6 +53,14 @@ def render(user):
         celular = ui.input("Celular / WhatsApp *", value=dados["celular"]).classes("w-full")
         nascimento = ui.input("Data de nascimento (AAAA-MM-DD)", value=dados["data_nascimento"] or "").classes("w-full")
         instagram = ui.input("Instagram (opcional)", value=dados["instagram"] or "").classes("w-full")
+
+        ui.label("Endereço (opcional \u2014 só é pedido se você pagar com cartão de crédito)").style(
+            f"color:{TEXT_MUTED}; font-size:11.5px; margin-top:4px;"
+        )
+        with ui.row().style("gap:10px; width:100%;"):
+            cep = ui.input("CEP", value=dados.get("cep") or "").style("flex:1;")
+            numero = ui.input("Número", value=dados.get("endereco_numero") or "").style("flex:1;")
+
         erro = ui.label("").style(f"color:{DANGER}; font-size:13px;")
 
         def salvar():
@@ -63,6 +71,7 @@ def render(user):
                 user["id"], nome=nome.value, sexo=sexo.value,
                 cpf=cpf.value, celular=celular.value, instagram=instagram.value or None,
                 data_nascimento=nascimento.value or None,
+                cep=cep.value or None, endereco_numero=numero.value or None,
             )
             user["nome"] = nome.value
             ui.notify("Dados atualizados.", type="positive")

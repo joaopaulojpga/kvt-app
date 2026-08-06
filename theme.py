@@ -53,9 +53,14 @@ def reais(centavos: int) -> str:
 
 
 GLOBAL_CSS = f"""
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
 body {{ background-color: {BG}; font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; }}
 .nicegui-content {{ padding: 0 !important; gap: 0 !important; }}
 .q-page {{ padding: 0 !important; }}
+.kv-brand {{
+    font-family: 'Baloo 2', 'Inter', sans-serif; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}}
 .canoa-card {{
     background: {CARD}; border: 1px solid {BORDER}; border-radius: 14px;
     padding: {SPACE_SM}; box-shadow: 0 1px 3px rgba(0,0,0,0.06);

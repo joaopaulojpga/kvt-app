@@ -38,7 +38,7 @@ def _menu_para(user):
         filhos_creditos.append(("Movimentações", "/creditos/movimentacoes", "swap_horiz", None))
 
     itens = [
-        ("Home", "/creditos", "home", None),
+        ("Home", "/home", "home", None),
         ("Créditos", None, "credit_card", filhos_creditos),
     ]
     if user["role"] in ("instrutor", "gestor"):

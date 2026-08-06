@@ -1,29 +1,25 @@
 # -*- coding: utf-8 -*-
 from nicegui import ui, app
-from theme import NAVY, TEAL, TEAL_DARK, TEAL_LIGHT, TEXT, TEXT_MUTED, DANGER, APP_NAME
+from theme import NAVY, TEAL, TEXT_MUTED, DANGER, APP_NAME
 from logo_data import LOGO_KALANI_DATA_URI
 import auth
-import carousel
+
+PASSOS = [
+    ("1", "Cadastre-se", "Crie sua conta com seus dados e comece."),
+    ("2", "Compre créditos", "Avulso ou em pacotes, com desconto."),
+    ("3", "Reserve sua aula", "Escolha o dia na agenda e faça check-in."),
+]
 
 
 def render():
-    with ui.column().style("max-width:900px; margin:0 auto; padding:48px 24px; gap:24px;").classes("kv-landing"):
+    with ui.column().style("max-width:900px; margin:0 auto; padding:40px 24px; gap:28px;").classes("kv-landing"):
         with ui.row().style("align-items:center; gap:10px;"):
-            ui.image(LOGO_KALANI_DATA_URI).style("width:40px; height:40px; border-radius:50%;")
-            ui.label(APP_NAME).style(f"color:{NAVY}; font-size:26px; font-weight:800;")
+            ui.image(LOGO_KALANI_DATA_URI).style("width:44px; height:44px; border-radius:50%;")
+            ui.label(APP_NAME).classes("kv-brand").style(f"color:{NAVY}; font-size:24px;")
 
-        carousel.render_carousel()
+        _passos_grid()
 
-        ui.button("COMEÇAR AGORA", on_click=lambda: ui.run_javascript(
-            "document.getElementById('cadastro-section')?.scrollIntoView({behavior:'smooth'});"
-        )).props("unelevated").style(
-            f"background:{TEAL}; color:white; font-weight:800; font-size:16px; "
-            "width:100%; padding:16px; border-radius:12px; letter-spacing:0.5px;"
-        )
-
-        _grade_horarios_chips()
-
-        with ui.column().style("width:100%;").props('id="cadastro-section"'):
+        with ui.column().style("width:100%;"):
             with ui.tabs().classes("w-full") as tabs:
                 tab_login = ui.tab("Entrar")
                 tab_cadastro = ui.tab("Cadastrar")
@@ -36,32 +32,19 @@ def render():
                     _form_cadastro()
 
 
-def _grade_horarios_chips():
-    with ui.column().style(
-        f"background:{TEAL_LIGHT}; border-radius:12px; padding:20px 22px; gap:10px; width:100%;"
-    ):
-        ui.label("Agenda de Remadas").style(
-            f"color:{TEAL_DARK}; font-weight:800; font-size:14px; "
-            "text-transform:uppercase; letter-spacing:0.6px;"
-        )
-        dias = [
-            ("Terça", ["06:00"]), ("Quinta", ["06:00"]),
-            ("Sábado", ["06:00", "08:00"]), ("Domingo", ["07:00", "09:00"]),
-        ]
-        with ui.row().style("gap:0; flex-wrap:wrap; width:100%;"):
-            for i, (dia, horarios) in enumerate(dias):
-                borda = "border-left:1px solid #C9E0DB; " if i > 0 else ""
-                with ui.column().style(
-                    f"gap:8px; min-width:100px; padding:0 20px; {borda}"
-                    + ("padding-left:0;" if i == 0 else "")
+def _passos_grid():
+    with ui.row().style("gap:10px; width:100%; flex-wrap:nowrap;"):
+        for numero, titulo, descricao in PASSOS:
+            with ui.column().classes("canoa-card").style(
+                "flex:1; min-width:0; gap:6px; padding:14px 12px; align-items:flex-start;"
+            ):
+                with ui.row().style(
+                    f"width:26px; height:26px; border-radius:50%; background:{TEAL}; "
+                    "align-items:center; justify-content:center; margin:0;"
                 ):
-                    ui.label(dia).style(f"color:{TEXT}; font-weight:700; font-size:12.5px;")
-                    with ui.row().style("gap:6px; flex-wrap:wrap;"):
-                        for h in horarios:
-                            ui.label(h).style(
-                                f"background:{TEAL}; color:white; font-weight:700; font-size:12px; "
-                                "padding:5px 12px; border-radius:999px;"
-                            )
+                    ui.label(numero).style("color:white; font-weight:800; font-size:13px;")
+                ui.label(titulo).style(f"color:{NAVY}; font-weight:800; font-size:13px; line-height:1.2;")
+                ui.label(descricao).style(f"color:{TEXT_MUTED}; font-size:11px; line-height:1.35;")
 
 
 def _form_login():
@@ -76,7 +59,7 @@ def _form_login():
                 erro.set_text("E-mail ou senha inválidos.")
                 return
             app.storage.user.update({"id": user["id"], "nome": user["nome"], "role": user["role"]})
-            ui.navigate.to("/creditos")
+            ui.navigate.to("/home")
 
         ui.button("Entrar", on_click=entrar).props("unelevated").style(
             f"background:{TEAL}; color:white; font-weight:700; width:100%;"
@@ -105,7 +88,7 @@ def _form_cadastro():
                     cpf.value, celular.value, instagram.value or None,
                 )
                 app.storage.user.update({"id": user_id, "nome": nome.value, "role": "aluno"})
-                ui.navigate.to("/creditos")
+                ui.navigate.to("/home")
             except ValueError as e:
                 erro.set_text(str(e))
 

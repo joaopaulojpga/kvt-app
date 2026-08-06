@@ -156,6 +156,16 @@ CREATE TABLE IF NOT EXISTS notification_log (
     UNIQUE(tipo, referencia_id)
 );
 
+-- Quem se inscreveu na newsletter da landing page pública (kalanivaa.com.br),
+-- ainda sem cadastro no app. Guardado pra uma feature futura de acesso/CRM —
+-- por enquanto só armazena.
+CREATE TABLE IF NOT EXISTS prospects (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    celular     TEXT NOT NULL,
+    origem      TEXT NOT NULL DEFAULT 'landing_newsletter',
+    criado_em   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT OR IGNORE INTO params (chave, valor) VALUES
     ('valor_aula_centavos', '3500'),
     ('taxa_fixa_instrutor_centavos', '2500'),
@@ -290,6 +300,13 @@ CREATE TABLE IF NOT EXISTS notification_log (
     referencia_id  INTEGER NOT NULL,
     enviado_em     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(tipo, referencia_id)
+);
+
+CREATE TABLE IF NOT EXISTS prospects (
+    id          SERIAL PRIMARY KEY,
+    celular     TEXT NOT NULL,
+    origem      TEXT NOT NULL DEFAULT 'landing_newsletter',
+    criado_em   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 INSERT INTO params (chave, valor) VALUES

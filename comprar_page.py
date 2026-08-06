@@ -112,7 +112,7 @@ def _abrir_modal_pagamento(user, dados_user, plano_key, tem_endereco):
                 ui.label("Suas remadas já estão disponíveis em \u201cMinhas Remadas\u201d.").style(
                     f"color:{TEXT_MUTED}; align-self:center; text-align:center;"
                 )
-                ui.button("Ir para a Home", on_click=lambda: (dialog.close(), ui.navigate.to("/creditos"))).props(
+                ui.button("Ir para a Home", on_click=lambda: (dialog.close(), ui.navigate.to("/home"))).props(
                     "unelevated"
                 ).style(f"background:{TEAL}; color:white; font-weight:700; align-self:center;")
 

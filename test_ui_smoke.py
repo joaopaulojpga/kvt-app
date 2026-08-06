@@ -119,6 +119,7 @@ testar("configuracoes_page", "render_escala", user_gestor)
 testar("historico_creditos_page", "render", user_instrutor)
 testar("movimentacoes_page", "render", user_gestor)
 testar("mensagens_page", "render", user_gestor)
+testar("landing_page", "render")
 
 
 # Testa também a aba "Newsletter" (não é a aba padrão, então o teste acima não passa por ela)
@@ -196,7 +197,7 @@ testar_escala()
 # layout.shell também precisa funcionar (é usado por toda página autenticada)
 try:
     from layout import shell
-    with shell("/creditos", user_instrutor):
+    with shell("/home", user_instrutor):
         pass
     print("OK   layout.shell(...)")
     # também com um filho do submenu "Créditos" ativo (expande o submenu) e pro gestor,
@@ -215,4 +216,4 @@ if erros:
         print(f" - {nome}: {e}")
     sys.exit(1)
 else:
-    print("Todas as 14 telas + layout carregaram sem erro com os dados de exemplo.")
+    print("Todas as 15 telas + layout carregaram sem erro com os dados de exemplo.")

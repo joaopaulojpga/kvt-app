@@ -38,7 +38,7 @@ with db() as conn:
 a = alerts.alertas_aluno(aluno, AGORA)
 approx(len(a), 1)
 assert "vencendo" in a[0]["mensagem"]
-approx(a[0]["rota"], "/creditos")
+approx(a[0]["rota"], "/home")
 print("OK — alerta de crédito vencendo em até 7 dias.")
 
 # reserva pra daqui a 6h -> alerta de lembrete de véspera

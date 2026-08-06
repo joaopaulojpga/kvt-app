@@ -52,7 +52,7 @@ def alertas_aluno(user_id, agora=None):
         alertas.append({
             "icone": "schedule",
             "mensagem": f"Você tem {venc['n']} remada{plural} vencendo até {venc['proxima']}.",
-            "rota": "/creditos",
+            "rota": "/home",
             "urgencia": "warn",
         })
 

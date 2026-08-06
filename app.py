@@ -10,6 +10,7 @@ from theme import GLOBAL_CSS, TEAL, NAVY, TEAL_DARK, OK, DANGER, WARN
 from pwa import PWA_HEAD_HTML, FAVICON_DATA_URI
 import home_page, creditos_page, comprar_page, agenda_page, perfil_page, presenca_page, dashboard_page, configuracoes_page
 import historico_creditos_page, movimentacoes_page, mensagens_page
+import landing_page
 import payments
 import newsletters
 from layout import shell
@@ -106,21 +107,29 @@ def _require_role(*roles):
 
 
 @ui.page("/")
-def pagina_home():
+def pagina_home(request: Request):
     _aplicar_tema()
     if _logged_in():
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
-    home_page.render()
+    # kalanivaa.com.br (domínio raiz) = landing institucional, só
+    # prospecção; qualquer outro host (app.kalanivaa.com.br, o domínio
+    # antigo do Render, localhost etc.) mostra a página de acesso ao
+    # sistema (login/cadastro).
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host == "kalanivaa.com.br":
+        landing_page.render()
+    else:
+        home_page.render()
 
 
-@ui.page("/creditos")
+@ui.page("/home")
 def pagina_creditos():
     _aplicar_tema()
     if not _logged_in():
         ui.navigate.to("/")
         return
-    with shell("/creditos", app.storage.user):
+    with shell("/home", app.storage.user):
         creditos_page.render(app.storage.user)
 
 
@@ -130,7 +139,7 @@ def pagina_comprar():
     if not _logged_in():
         ui.navigate.to("/")
         return
-    with shell("/creditos", app.storage.user):
+    with shell("/comprar", app.storage.user):
         comprar_page.render(app.storage.user)
 
 
@@ -151,7 +160,7 @@ def pagina_movimentacoes_creditos():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/creditos/movimentacoes", app.storage.user):
         movimentacoes_page.render(app.storage.user)
@@ -184,7 +193,7 @@ def pagina_presenca():
         ui.navigate.to("/")
         return
     if not _require_role("instrutor", "gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/presenca", app.storage.user):
         presenca_page.render(app.storage.user)
@@ -197,7 +206,7 @@ def pagina_dashboard():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/dashboard", app.storage.user):
         dashboard_page.render(app.storage.user)
@@ -217,7 +226,7 @@ def pagina_configuracoes_alunos():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/configuracoes/alunos", app.storage.user):
         configuracoes_page.render_alunos(app.storage.user)
@@ -230,7 +239,7 @@ def pagina_configuracoes_relatorios():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/configuracoes/relatorios", app.storage.user):
         configuracoes_page.render_relatorios(app.storage.user)
@@ -243,7 +252,7 @@ def pagina_configuracoes_newsletter():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/configuracoes/newsletter", app.storage.user):
         configuracoes_page.render_newsletter(app.storage.user)
@@ -256,7 +265,7 @@ def pagina_configuracoes_escala():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/configuracoes/escala", app.storage.user):
         configuracoes_page.render_escala(app.storage.user)
@@ -269,7 +278,7 @@ def pagina_configuracoes_mensagens():
         ui.navigate.to("/")
         return
     if not _require_role("gestor"):
-        ui.navigate.to("/creditos")
+        ui.navigate.to("/home")
         return
     with shell("/configuracoes/mensagens", app.storage.user):
         mensagens_page.render(app.storage.user)

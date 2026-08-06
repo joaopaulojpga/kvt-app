@@ -21,6 +21,7 @@ if "nicegui" not in sys.modules:
     sys.modules["nicegui"] = _fake
 
 from db import init_db, db  # noqa: E402
+from auth import cadastrar_usuario  # noqa: E402
 import landing_page  # noqa: E402
 
 init_db()
@@ -28,6 +29,25 @@ init_db()
 
 def approx(a, b, msg=""):
     assert a == b, f"{msg} — esperado {b!r}, obtido {a!r}"
+
+
+# ---- cadastro já aceita CEP/número opcionalmente (pedido no formulário da página de login) ----
+uid = cadastrar_usuario(
+    "Teste CEP", "F", "teste_cep@t.com", "1", "cepnum1", "21999990000",
+    cep="28035-000", endereco_numero="42",
+)
+with db() as conn:
+    row = conn.execute("SELECT cep, endereco_numero FROM users WHERE id = ?", (uid,)).fetchone()
+approx(row["cep"], "28035-000")
+approx(row["endereco_numero"], "42")
+print("OK — cadastrar_usuario salva CEP e número quando informados.")
+
+uid2 = cadastrar_usuario("Teste Sem CEP", "M", "teste_sem_cep@t.com", "1", "cepnum2", "21999990001")
+with db() as conn:
+    row2 = conn.execute("SELECT cep, endereco_numero FROM users WHERE id = ?", (uid2,)).fetchone()
+approx(row2["cep"], None)
+approx(row2["endereco_numero"], None)
+print("OK — cadastro continua funcionando normalmente sem CEP/número (campos opcionais).")
 
 
 # ---- captura de prospect: reproduz a lógica de validação + insert de _newsletter() ----

@@ -36,14 +36,19 @@ SECOES = [
 
 PASSOS = [
     ("account_circle", "Cadastre-se", "Crie sua conta em poucos segundos e venha fazer parte do Kalani Vaa Team."),
-    ("event", "Escolha seu horário", "Confira nossa grade de turmas e escolha o melhor horário pra você remar."),
-    ("directions_boat", "Reme e evolua", "Participe das remadas, melhore seu condicionamento e desfrute da experiência!"),
+    ("shopping_cart", "Adquira sua remada",
+     "Confira nossos pacotes, adquira créditos de remadas e reserve sua vaga em um de nossos horários disponíveis."),
+    ("directions_boat", "Reme e evolua",
+     "Compareça na remada agendada, melhore seu condicionamento, desfrute do acolhimento da nossa comunidade "
+     "e da experiência completa da Kalani Vaa."),
 ]
 
+# (dia, horário, tipo) — terça/quinta/sábado 6h/domingo 7h são treino;
+# sábado 8h e domingo 9h são passeio.
 HORARIOS_SEMANA = [
-    ("Terça", "06:00"), ("Quinta", "06:00"),
-    ("Sábado", "06:00"), ("Sábado", "08:00"),
-    ("Domingo", "07:00"), ("Domingo", "09:00"),
+    ("Terça", "06:00", "Treino"), ("Quinta", "06:00", "Treino"),
+    ("Sábado", "06:00", "Treino"), ("Sábado", "08:00", "Passeio"),
+    ("Domingo", "07:00", "Treino"), ("Domingo", "09:00", "Passeio"),
 ]
 
 COMODIDADES = [
@@ -147,14 +152,14 @@ def _banner_principal():
                 ui.icon("lock", size="14px").style("color:#9FBE86;")
                 ui.label("Processo rápido e seguro").style("color:#9FBE86; font-size:11.5px;")
 
-        with ui.row().style(
-            "max-width:640px; margin:20px auto 0; width:100%; gap:14px; flex-wrap:wrap; "
-            "justify-content:space-between;"
+        with ui.element("div").style(
+            "max-width:520px; margin:20px auto 0; width:100%; display:grid; "
+            "grid-template-columns:1fr 1fr; gap:14px 10px;"
         ):
             for icone, texto in COMODIDADES:
-                with ui.row().style("align-items:center; gap:8px; flex:1; min-width:130px;"):
-                    ui.icon(icone, size="18px").style(f"color:{TEAL};")
-                    ui.label(texto).style("color:#D7E3CE; font-size:12px;")
+                with ui.row().style("align-items:flex-start; gap:8px; flex-wrap:nowrap;"):
+                    ui.icon(icone, size="18px").style(f"color:{TEAL}; flex-shrink:0; margin-top:1px;")
+                    ui.label(texto).style("color:#D7E3CE; font-size:12px; line-height:1.35;")
 
 
 def _titulo_secao(eyebrow, titulo):
@@ -172,36 +177,34 @@ def _como_funciona():
         "width:100%; padding:48px 24px; gap:8px; align-items:center; background:white;"
     ).props('id="como-funciona"'):
         _titulo_secao("Como funciona", "3 passos para começar")
-        with ui.column().style("max-width:480px; width:100%; gap:20px; margin-top:20px;"):
+        with ui.column().style("max-width:420px; width:100%; gap:14px; margin-top:20px;"):
             for i, (icone, titulo, descricao) in enumerate(PASSOS, 1):
-                with ui.row().style("gap:16px; align-items:flex-start; width:100%;"):
-                    with ui.column().style("align-items:center; gap:4px;"):
+                with ui.column().classes("canoa-card").style("width:100%; gap:8px; align-items:center; text-align:center;"):
+                    with ui.row().style("align-items:center; gap:8px;"):
                         with ui.row().style(
-                            f"width:40px; height:40px; border-radius:50%; background:{TEAL}; "
+                            f"width:32px; height:32px; border-radius:50%; background:{TEAL}; "
                             "align-items:center; justify-content:center; flex-shrink:0;"
                         ):
-                            ui.label(str(i)).style("color:white; font-weight:800; font-size:15px;")
-                        ui.icon(icone, size="20px").style(f"color:{TEAL_LIGHT}; background:{NAVY}; "
-                                                            "border-radius:50%; padding:6px;")
-                    with ui.column().style("gap:2px;"):
-                        ui.label(titulo).style(f"color:{NAVY}; font-weight:800; font-size:15px;")
-                        ui.label(descricao).style(f"color:{TEXT_MUTED}; font-size:13px; line-height:1.4;")
+                            ui.label(str(i)).style("color:white; font-weight:800; font-size:13px;")
+                        ui.icon(icone, size="22px").style(f"color:{TEAL_DARK};")
+                    ui.label(titulo).style(f"color:{NAVY}; font-weight:800; font-size:15px;")
+                    ui.label(descricao).style(f"color:{TEXT_MUTED}; font-size:13px; line-height:1.45;")
 
 
 def _grade_horarios():
     with ui.column().style(
         f"width:100%; padding:48px 24px; gap:8px; align-items:center; background:{TEAL_LIGHT};"
     ).props('id="horarios"'):
-        _titulo_secao("Grade de horários", "Encontre o melhor horário pra você")
+        _titulo_secao("Agenda de Turmas", "Encontre o melhor horário pra você")
         with ui.column().style("max-width:520px; width:100%; gap:10px; margin-top:20px;"):
-            for dia, horario in HORARIOS_SEMANA:
+            for dia, horario, tipo in HORARIOS_SEMANA:
                 with ui.row().style(
                     "background:white; border-radius:12px; padding:14px 18px; width:100%; "
                     "align-items:center; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.06);"
                 ):
                     with ui.row().style("align-items:center; gap:10px;"):
                         ui.icon("event", size="18px").style(f"color:{TEAL};")
-                        ui.label(dia).style(f"color:{NAVY}; font-weight:700; font-size:14px;")
+                        ui.label(f"{dia} \u2014 {tipo}").style(f"color:{NAVY}; font-weight:700; font-size:14px;")
                     ui.label(horario).style(
                         f"background:{TEAL}; color:white; font-weight:700; font-size:13px; "
                         "padding:5px 14px; border-radius:999px;"
@@ -210,6 +213,10 @@ def _grade_horarios():
             f"background:{NAVY}; color:white; font-weight:800; font-size:14.5px; "
             "padding:12px 36px; border-radius:999px; margin-top:20px;"
         )
+        ui.label(
+            "Quer agendar um passeio exclusivo para seu grupo fora da nossa grade de horários padrão? "
+            "Entre em contato conosco e confira a disponibilidade."
+        ).style(f"color:{TEXT_MUTED}; font-size:12px; text-align:center; max-width:420px; margin-top:14px;")
 
 
 def _newsletter():
@@ -321,11 +328,10 @@ def _localizacao():
     ).props('id="localizacao"'):
         _titulo_secao("Nossa localização", "Venha nos conhecer!")
         with ui.column().style("max-width:520px; width:100%; gap:14px; margin-top:20px;"):
-            with ui.element("div").style(
-                "width:100%; height:260px; border-radius:14px; overflow:hidden; "
-                "box-shadow:0 1px 4px rgba(0,0,0,0.1);"
-            ):
-                ui.html(MAPS_IFRAME).style("width:100%; height:100%;")
+            ui.html(
+                '<div style="width:100%; height:260px; border-radius:14px; overflow:hidden; '
+                f'box-shadow:0 1px 4px rgba(0,0,0,0.1);">{MAPS_IFRAME}</div>'
+            ).style("width:100%; display:block;")
             ui.label(f"{LOCAL_CLUBE} \u2014 Campos dos Goytacazes, RJ").style(
                 f"color:{NAVY}; font-weight:700; font-size:14px; text-align:center;"
             )
@@ -371,7 +377,8 @@ def _rodape():
                     ui.image(LOGO_KALANI_DATA_URI).style("width:30px; height:30px; border-radius:50%;")
                     ui.label(APP_NAME).classes("kv-brand").style("color:white; font-size:13px;")
                 ui.label(
-                    "Mais que um esporte, um estilo de vida. Junte-se a nós e reme pelo aprazível caminho da natureza."
+                    "Mais que um esporte, um estilo de vida. Faça parte da nossa comunidade e venha "
+                    "desfrutar de momentos valiosos em contato com a natureza junto conosco."
                 ).style("color:#9FBE86; font-size:12px; line-height:1.5;")
             with ui.column().style("gap:6px;"):
                 ui.label("NAVEGAÇÃO").style(

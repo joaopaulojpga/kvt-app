@@ -6,7 +6,7 @@ import auth
 
 PASSOS = [
     ("1", "Cadastre-se", "Crie sua conta com seus dados e comece."),
-    ("2", "Compre créditos", "Avulso ou em pacotes, com desconto."),
+    ("2", "Compre Remadas", "Avulsa ou em pacotes com desconto"),
     ("3", "Reserve sua aula", "Escolha o dia na agenda e faça check-in."),
 ]
 
@@ -75,6 +75,12 @@ def _form_cadastro():
         cpf = ui.input("CPF *").classes("w-full")
         celular = ui.input("Celular / WhatsApp *").classes("w-full")
         instagram = ui.input("Instagram (opcional)").classes("w-full")
+        ui.label("Endereço (opcional \u2014 só é pedido se você pagar com cartão de crédito)").style(
+            f"color:{TEXT_MUTED}; font-size:11.5px; margin-top:4px;"
+        )
+        with ui.row().style("gap:10px; width:100%;"):
+            cep = ui.input("CEP").style("flex:1;")
+            numero = ui.input("Número").style("flex:1;")
         erro = ui.label("").style(f"color:{DANGER}; font-size:13px;")
 
         def cadastrar():
@@ -86,6 +92,7 @@ def _form_cadastro():
                 user_id = auth.cadastrar_usuario(
                     nome.value, sexo.value, email_c.value, senha_c.value,
                     cpf.value, celular.value, instagram.value or None,
+                    cep=cep.value or None, endereco_numero=numero.value or None,
                 )
                 app.storage.user.update({"id": user_id, "nome": nome.value, "role": "aluno"})
                 ui.navigate.to("/home")

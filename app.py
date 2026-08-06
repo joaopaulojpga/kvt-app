@@ -117,6 +117,7 @@ def pagina_home(request: Request):
     # antigo do Render, localhost etc.) mostra a página de acesso ao
     # sistema (login/cadastro).
     host = (request.headers.get("host") or "").split(":")[0].lower()
+    print(f"[debug] host recebido em '/': {host!r}")  # TODO: remover depois de confirmar o roteamento
     if host == "kalanivaa.com.br":
         landing_page.render()
     else:

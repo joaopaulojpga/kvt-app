@@ -18,15 +18,15 @@ def _hash(senha: str) -> str:
     return hashlib.sha256((_SALT + senha).encode("utf-8")).hexdigest()
 
 
-def cadastrar_usuario(nome, sexo, email, senha, cpf, celular, instagram=None, role="aluno"):
+def cadastrar_usuario(nome, sexo, email, senha, cpf, celular, instagram=None, role="aluno", cep=None, endereco_numero=None):
     with db() as conn:
         existente = conn.execute("SELECT id FROM users WHERE email = ? OR cpf = ?", (email, cpf)).fetchone()
         if existente:
             raise ValueError("Já existe um cadastro com este e-mail ou CPF.")
         conn.execute(
-            "INSERT INTO users (nome, sexo, email, senha_hash, cpf, celular, instagram, role) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (nome, sexo, email, _hash(senha), cpf, celular, instagram, role),
+            "INSERT INTO users (nome, sexo, email, senha_hash, cpf, celular, instagram, role, cep, endereco_numero) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (nome, sexo, email, _hash(senha), cpf, celular, instagram, role, cep, endereco_numero),
         )
         user_id = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()["id"]
     import whatsapp
